@@ -51,6 +51,7 @@ namespace PKHeX.WinForms
             Menu_MGDatabase = new System.Windows.Forms.ToolStripMenuItem();
             Menu_EncDatabase = new System.Windows.Forms.ToolStripMenuItem();
             Menu_BatchEditor = new System.Windows.Forms.ToolStripMenuItem();
+            Menu_LivingDex = new System.Windows.Forms.ToolStripMenuItem();
             Menu_Folder = new System.Windows.Forms.ToolStripMenuItem();
             Menu_Options = new System.Windows.Forms.ToolStripMenuItem();
             Menu_Language = new System.Windows.Forms.ToolStripMenuItem();
@@ -193,7 +194,7 @@ namespace PKHeX.WinForms
             // 
             // Menu_Data
             // 
-            Menu_Data.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { Menu_LoadBoxes, Menu_DumpBoxes, Menu_DumpBox, Menu_Report, Menu_Database, Menu_MGDatabase, Menu_EncDatabase, Menu_BatchEditor });
+            Menu_Data.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { Menu_LoadBoxes, Menu_DumpBoxes, Menu_DumpBox, Menu_Report, Menu_Database, Menu_MGDatabase, Menu_EncDatabase, Menu_BatchEditor, Menu_LivingDex });
             Menu_Data.Image = Properties.Resources.data;
             Menu_Data.Name = "Menu_Data";
             Menu_Data.Size = new System.Drawing.Size(133, 22);
@@ -272,7 +273,17 @@ namespace PKHeX.WinForms
             Menu_BatchEditor.Size = new System.Drawing.Size(182, 22);
             Menu_BatchEditor.Text = "Batch Editor";
             Menu_BatchEditor.Click += MainMenuBatchEditor;
-            // 
+            //
+            // Menu_LivingDex
+            //
+            Menu_LivingDex.Image = Properties.Resources.report;
+            Menu_LivingDex.Name = "Menu_LivingDex";
+            Menu_LivingDex.ShortcutKeys = System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.L;
+            Menu_LivingDex.ShowShortcutKeys = false;
+            Menu_LivingDex.Size = new System.Drawing.Size(182, 22);
+            Menu_LivingDex.Text = "Generate Living Dex";
+            Menu_LivingDex.Click += MainMenuLivingDex;
+            //
             // Menu_Folder
             // 
             Menu_Folder.Image = Properties.Resources.folder;
@@ -541,6 +552,7 @@ namespace PKHeX.WinForms
         private System.Windows.Forms.ToolStripMenuItem Menu_Settings;
         private System.Windows.Forms.ToolStripMenuItem Menu_ShowdownExportCurrentBox;
         private System.Windows.Forms.ToolStripMenuItem Menu_EncDatabase;
+        private System.Windows.Forms.ToolStripMenuItem Menu_LivingDex;
         private System.Windows.Forms.ToolTip toolTip;
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.SplitContainer splitContainer2;

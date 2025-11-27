@@ -421,6 +421,363 @@ public partial class Main : Form
         C_SAV.UpdateBoxViewers();
     }
 
+    private async void MainMenuLivingDex(object sender, EventArgs e)
+    {
+        var sav = C_SAV.SAV;
+        if (!sav.HasBox)
+        {
+            WinFormsUtil.Alert("This save file does not have boxes.");
+            return;
+        }
+
+        int boxCount = sav.BoxCount;
+        int slotsPerBox = sav.BoxSlotCount;
+
+        var confirmPrompt = WinFormsUtil.Prompt(MessageBoxButtons.YesNo,
+            "This will generate a complete Living Dex with all legal Pokémon.",
+            "This will overwrite existing box data. Continue?");
+        if (confirmPrompt != DialogResult.Yes)
+            return;
+
+        // Show wait cursor and disable form
+        Cursor = Cursors.WaitCursor;
+        Enabled = false;
+
+        List<PKM>? pokemon = null;
+        try
+        {
+            // Generate Living Dex in background thread
+            pokemon = await Task.Run(() => GenerateLegalLivingDex(sav));
+        }
+        finally
+        {
+            Cursor = Cursors.Default;
+            Enabled = true;
+        }
+
+        if (pokemon == null || pokemon.Count == 0)
+        {
+            WinFormsUtil.Alert("No Pokémon could be generated for this save file.");
+            return;
+        }
+
+        // Clear boxes first
+        for (int box = 0; box < boxCount; box++)
+        {
+            for (int slot = 0; slot < slotsPerBox; slot++)
+            {
+                sav.SetBoxSlotAtIndex(sav.BlankPKM, box, slot);
+            }
+        }
+
+        // Fill boxes with generated Pokémon (all are already legal)
+        int index = 0;
+        for (int box = 0; box < boxCount && index < pokemon.Count; box++)
+        {
+            for (int slot = 0; slot < slotsPerBox && index < pokemon.Count; slot++)
+            {
+                sav.SetBoxSlotAtIndex(pokemon[index], box, slot);
+                index++;
+            }
+        }
+
+        C_SAV.SetPKMBoxes(); // refresh
+        C_SAV.UpdateBoxViewers();
+
+        WinFormsUtil.Alert($"Living Dex generated successfully!", $"Added {index} legal Pokémon to boxes.");
+    }
+
+    private static List<PKM> GenerateLegalLivingDex(SaveFile sav)
+    {
+        var result = new List<PKM>();
+        var personal = sav.Personal;
+        var criteria = EncounterCriteria.Unrestricted;
+
+        // Track which species/forms we've successfully added
+        var addedForms = new HashSet<(ushort Species, byte Form)>();
+
+        // Collect all target species/forms we want
+        var targetForms = new List<(ushort Species, byte Form)>();
+        for (ushort species = 1; species <= sav.MaxSpeciesID; species++)
+        {
+            if (!personal.IsSpeciesInGame(species))
+                continue;
+
+            var pi = personal.GetFormEntry(species, 0);
+            var formCount = pi.FormCount;
+
+            for (byte form = 0; form < formCount; form++)
+            {
+                // Skip battle-only forms (mega forms, primals, etc.)
+                if (FormInfo.IsBattleOnlyForm(species, form, sav.Generation))
+                    continue;
+                if (FormInfo.IsTotemForm(species, form))
+                    continue;
+                if (FormInfo.IsLordForm(species, form, sav.Context))
+                    continue;
+
+                targetForms.Add((species, form));
+            }
+        }
+
+        // Create template for searches
+        var blank = sav.BlankPKM;
+
+        // Get all compatible game versions for multi-version search
+        var versions = GetCompatibleVersions(sav);
+
+        // PASS 1: Search regular encounters
+        foreach (var (species, form) in targetForms)
+        {
+            if (addedForms.Contains((species, form)))
+                continue;
+
+            blank.Species = species;
+            blank.Form = form;
+            blank.SetGender(blank.GetSaneGender());
+            EncounterMovesetGenerator.OptimizeCriteria(blank, sav);
+
+            var encounters = EncounterMovesetGenerator.GenerateEncounters(blank, ReadOnlyMemory<ushort>.Empty, versions);
+
+            foreach (var enc in encounters)
+            {
+                if (enc.Species != species || enc.Form != form)
+                    continue;
+
+                try
+                {
+                    var temp = enc.ConvertToPKM(sav, criteria);
+                    var pk = EntityConverter.ConvertToType(temp, sav.PKMType, out _);
+                    if (pk == null)
+                        continue;
+
+                    sav.AdaptToSaveFile(pk);
+
+                    if (pk.IsEgg)
+                        pk.ForceHatchPKM(sav);
+
+                    pk.Heal();
+                    pk.RefreshChecksum();
+
+                    var la = new LegalityAnalysis(pk);
+                    if (la.Valid)
+                    {
+                        TryAddMegaStone(pk, pk.Species, sav);
+                        result.Add(pk);
+                        addedForms.Add((species, form));
+                        break;
+                    }
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+        }
+
+        // PASS 2: Search mystery gifts directly for missing species
+        var missingForms = targetForms.Where(x => !addedForms.Contains(x)).ToList();
+        if (missingForms.Count > 0)
+        {
+            var mysteryGifts = GetMysteryGiftsForContext(sav.Context);
+            foreach (var (species, form) in missingForms)
+            {
+                if (addedForms.Contains((species, form)))
+                    continue;
+
+                foreach (var mg in mysteryGifts)
+                {
+                    if (mg.Species != species)
+                        continue;
+                    if (mg.Form != form && form != 0) // Allow base form from any gift
+                        continue;
+
+                    try
+                    {
+                        var pk = mg.ConvertToPKM(sav, criteria);
+                        var converted = EntityConverter.ConvertToType(pk, sav.PKMType, out _);
+                        if (converted == null)
+                            continue;
+
+                        sav.AdaptToSaveFile(converted);
+
+                        if (converted.IsEgg)
+                            converted.ForceHatchPKM(sav);
+
+                        converted.Heal();
+                        converted.RefreshChecksum();
+
+                        var la = new LegalityAnalysis(converted);
+                        if (la.Valid)
+                        {
+                            TryAddMegaStone(converted, converted.Species, sav);
+                            result.Add(converted);
+                            addedForms.Add((species, converted.Form));
+                            break;
+                        }
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Gets mystery gifts for the given entity context.
+    /// </summary>
+    private static IEnumerable<MysteryGift> GetMysteryGiftsForContext(EntityContext context)
+    {
+        return context switch
+        {
+            EntityContext.Gen9a => EncounterEvent.MGDB_G9A.Cast<MysteryGift>()
+                .Concat(EncounterEvent.EGDB_G9A.Cast<MysteryGift>()),
+            EntityContext.Gen9 => EncounterEvent.MGDB_G9.Cast<MysteryGift>()
+                .Concat(EncounterEvent.EGDB_G9.Cast<MysteryGift>()),
+            EntityContext.Gen8a => EncounterEvent.MGDB_G8A.Cast<MysteryGift>()
+                .Concat(EncounterEvent.EGDB_G8A.Cast<MysteryGift>()),
+            EntityContext.Gen8b => EncounterEvent.MGDB_G8B.Cast<MysteryGift>()
+                .Concat(EncounterEvent.EGDB_G8B.Cast<MysteryGift>()),
+            EntityContext.Gen8 => EncounterEvent.MGDB_G8.Cast<MysteryGift>()
+                .Concat(EncounterEvent.EGDB_G8.Cast<MysteryGift>()),
+            _ => [],
+        };
+    }
+
+    /// <summary>
+    /// Gets all compatible game versions for encounter search based on save file context.
+    /// This allows finding encounters from older games that can be transferred.
+    /// </summary>
+    private static GameVersion[] GetCompatibleVersions(SaveFile sav)
+    {
+        // For Gen 9 ZA, search ZA first, then SV, then other compatible versions
+        if (sav.Context == EntityContext.Gen9a)
+        {
+            return
+            [
+                GameVersion.ZA,
+                GameVersion.SL, GameVersion.VL,
+            ];
+        }
+
+        // For Gen 9 SV
+        if (sav.Context == EntityContext.Gen9)
+        {
+            return
+            [
+                GameVersion.SL, GameVersion.VL,
+                GameVersion.PLA,
+                GameVersion.BD, GameVersion.SP,
+                GameVersion.SW, GameVersion.SH,
+                GameVersion.GO,
+            ];
+        }
+
+        // For Gen 8 PLA
+        if (sav.Context == EntityContext.Gen8a)
+        {
+            return [GameVersion.PLA];
+        }
+
+        // For Gen 8 BDSP
+        if (sav.Context == EntityContext.Gen8b)
+        {
+            return [GameVersion.BD, GameVersion.SP];
+        }
+
+        // For Gen 8 SWSH
+        if (sav.Context == EntityContext.Gen8)
+        {
+            return
+            [
+                GameVersion.SW, GameVersion.SH,
+                GameVersion.GO,
+            ];
+        }
+
+        // Default: just use the save's version
+        return [sav.Version];
+    }
+
+    private static void TryAddMegaStone(PKM pk, ushort species, SaveFile sav)
+    {
+        // Only for games that support mega evolution
+        if (sav.Generation < 6)
+            return;
+
+        // Check if this species can mega evolve (form 1 is usually the mega form)
+        var megaStone = GetMegaStoneForSpecies(species, sav);
+        if (megaStone != 0 && pk.HeldItem == 0)
+        {
+            pk.HeldItem = megaStone;
+        }
+    }
+
+    private static ushort GetMegaStoneForSpecies(ushort species, SaveFile sav)
+    {
+        // For Gen 9 ZA context, use the ZA mega stone lookup
+        if (sav.Context == EntityContext.Gen9a)
+        {
+            return ItemStorage9ZA.GetExpectedMegaStone(species, 1);
+        }
+
+        // For Gen 6/7, use standard mega stone IDs
+        return (Species)species switch
+        {
+            Species.Venusaur => 659,
+            Species.Charizard => 660, // X stone (can also use 678 for Y)
+            Species.Blastoise => 661,
+            Species.Alakazam => 679,
+            Species.Gengar => 656,
+            Species.Kangaskhan => 675,
+            Species.Pinsir => 671,
+            Species.Gyarados => 676,
+            Species.Aerodactyl => 672,
+            Species.Mewtwo => 662, // X stone (can also use 663 for Y)
+            Species.Ampharos => 658,
+            Species.Scizor => 670,
+            Species.Heracross => 680,
+            Species.Houndoom => 666,
+            Species.Tyranitar => 669,
+            Species.Blaziken => 664,
+            Species.Gardevoir => 657,
+            Species.Mawile => 681,
+            Species.Aggron => 667,
+            Species.Medicham => 665,
+            Species.Manectric => 682,
+            Species.Banette => 668,
+            Species.Absol => 677,
+            Species.Garchomp => 683,
+            Species.Lucario => 673,
+            Species.Abomasnow => 674,
+            Species.Beedrill => 770,
+            Species.Pidgeot => 762,
+            Species.Slowbro => 760,
+            Species.Steelix => 761,
+            Species.Sceptile => 753,
+            Species.Swampert => 752,
+            Species.Sableye => 754,
+            Species.Sharpedo => 759,
+            Species.Camerupt => 767,
+            Species.Altaria => 755,
+            Species.Glalie => 763,
+            Species.Salamence => 769,
+            Species.Metagross => 758,
+            Species.Latias => 684,
+            Species.Latios => 685,
+            Species.Rayquaza => 0, // Needs Dragon Ascent move instead
+            Species.Lopunny => 768,
+            Species.Gallade => 756,
+            Species.Audino => 757,
+            Species.Diancie => 764,
+            _ => 0,
+        };
+    }
+
     private void MainMenuFolder(object sender, EventArgs e)
     {
         if (this.OpenWindowExists<SAV_FolderList>())

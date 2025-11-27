@@ -64,7 +64,6 @@
     <None Remove="MainWindow\Plugins\SpindaPatternPlugin.dll" />
     <None Remove="MainWindow\Plugins\SVSeedFinderPlugin.dll" />
     <None Remove="MainWindow\Plugins\SWSHSeedFinderPlugin.dll" />
-    <None Remove="MainWindow\Plugins\PKHeX.Plugin.LivingDex.dll" />
   </ItemGroup>
 
   <ItemGroup>
@@ -81,9 +80,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Include="MainWindow\Plugins\SWSHSeedFinderPlugin.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>
-    <EmbeddedResource Include="MainWindow\Plugins\PKHeX.Plugin.LivingDex.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>
