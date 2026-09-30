@@ -898,9 +898,12 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
     public virtual void SetShiny()
     {
         var rnd = Util.Rand;
+        // A Gen 3-5 origin was shiny under the old xor < 8 rule. In a Gen 6+ format IsShiny accepts
+        // 8-15 too, but those PIDs get their top bit flipped on transfer, so EC = PID would be illegal.
+        bool pastGenOrigin = Format >= 6 && (Gen3 || Gen4 || Gen5);
         do PID = EntityPID.GetRandomPID(rnd, Species, Gender, Version, Nature, Form, PID);
-        while (!IsShiny);
-        if (Format >= 6 && (Gen3 || Gen4 || Gen5))
+        while (pastGenOrigin ? ShinyXor >= 8 : !IsShiny);
+        if (pastGenOrigin)
             EncryptionConstant = PID;
     }
 
