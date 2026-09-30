@@ -56,6 +56,27 @@ public class ShowdownSetTests
     }
 
     [Theory]
+    [InlineData(EntityContext.Gen6)]
+    [InlineData(EntityContext.Gen7)]
+    [InlineData(EntityContext.Gen8)]
+    [InlineData(EntityContext.Gen9)]
+    public void ShowdownPumpkabooSizesResolveInEveryContext(EntityContext context)
+    {
+        // Gen 9 renamed Average/Super to Medium/Jumbo; Showdown still says Average/Super.
+        var strings = GameInfo.GetStrings("en");
+        foreach (var species in new[] { (ushort)Species.Pumpkaboo, (ushort)Species.Gourgeist })
+        {
+            string[] showdown = ["Average", "Small", "Large", "Super"];
+            for (byte expect = 0; expect < showdown.Length; expect++)
+            {
+                var name = ShowdownParsing.GetFormNameFromShowdownFormName(species, showdown[expect], 0, context);
+                ShowdownParsing.GetFormFromString(name, strings, species, context)
+                    .Should().Be(expect, $"{(Species)species}-{showdown[expect]} in {context}");
+            }
+        }
+    }
+
+    [Theory]
     [InlineData(1)]
     [InlineData(Vivillon3DS.FancyFormID)]
     public void SimGetVivillonPostcardSV(byte form)

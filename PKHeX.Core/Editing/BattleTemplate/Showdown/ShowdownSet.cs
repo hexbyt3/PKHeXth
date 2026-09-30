@@ -83,7 +83,7 @@ public sealed class ShowdownSet : IBattleTemplate
     {
         ReviseContextIfPastGenForm(localization.Strings);
         if (localization.Strings.Language == LanguageID.English)
-            FormName = ShowdownParsing.GetFormNameFromShowdownFormName(Species, FormName, Ability);
+            FormName = ShowdownParsing.GetFormNameFromShowdownFormName(Species, FormName, Ability, Context);
         Form = ShowdownParsing.GetFormFromString(FormName, localization.Strings, Species, Context);
 
         // Handle edge case with fixed-gender forms.

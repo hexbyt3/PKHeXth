@@ -137,7 +137,15 @@ public static class ShowdownParsing
     /// <param name="form">Showdown form name</param>
     /// <param name="ability">Showdown ability ID</param>
     public static string GetFormNameFromShowdownFormName(ushort species, string form, int ability)
+        => GetFormNameFromShowdownFormName(species, form, ability, EntityContext.Gen9);
+
+    /// <inheritdoc cref="GetFormNameFromShowdownFormName(ushort,string,int)"/>
+    /// <param name="context">Context the form name is resolved in; Pumpkaboo/Gourgeist sizes were renamed in Gen 9.</param>
+    public static string GetFormNameFromShowdownFormName(ushort species, string form, int ability, EntityContext context)
     {
+        if (species is (int)Pumpkaboo or (int)Gourgeist && context.Generation() < 9)
+            return form; // Gen 6-8 still call them Average/Small/Large/Super, same as Showdown
+
         if (form.Length != 0)
             form = form.Replace(' ', '-'); // inconsistencies are great
 
