@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace PKHeX.Core;
 
 /// <summary>
@@ -13,15 +9,6 @@ public sealed class SlotEditor<T>(SaveFile SAV)
     public readonly SlotPublisher<T> Publisher = new();
 
     private void NotifySlotChanged(ISlotInfo slot, SlotTouchType type, PKM pk) => Publisher.NotifySlotChanged(slot, type, pk);
-
-    /// <summary>
-    /// Notifies subscribers that a slot was modified externally.
-    /// </summary>
-    public void UpdateSlot(ISlotInfo slot)
-    {
-        var pk = slot.Read(SAV);
-        NotifySlotChanged(slot, SlotTouchType.Set, pk);
-    }
 
     /// <summary>
     /// Gets data from a slot.
@@ -48,12 +35,7 @@ public sealed class SlotEditor<T>(SaveFile SAV)
         if (!slot.CanWriteTo(SAV))
             return SlotTouchResult.FailWrite;
 
-        using var change = Changelog.Begin(slot);
-        if (!slot.WriteTo(SAV, pk, EntityImportSettings.None))
-            return SlotTouchResult.FailWrite;
-
-        change.Commit();
-        NotifySlotChanged(slot, type, pk);
+        WriteSlot(slot, pk, type);
         return SlotTouchResult.Success;
     }
 
@@ -67,21 +49,14 @@ public sealed class SlotEditor<T>(SaveFile SAV)
         if (!slot.CanWriteTo(SAV))
             return SlotTouchResult.FailDelete;
 
-        var pk = SAV.BlankPKM;
-        var settings = EntityImportSettings.None;
-
-        using var change = Changelog.Begin(slot);
-
-        if (!slot.WriteTo(SAV, pk, settings))
+        if (!DeleteSlot(slot))
             return SlotTouchResult.FailDelete;
 
-        change.Commit();
-        NotifySlotChanged(slot, SlotTouchType.Delete, pk);
         return SlotTouchResult.Success;
     }
 
     /// <summary>
-    /// Swaps two slots as one undoable operation.
+    /// Swaps two slots.
     /// </summary>
     /// <param name="source">Source slot to be switched with <see cref="dest"/>.</param>
     /// <param name="dest">Destination slot to be switched with <see cref="source"/>.</param>
@@ -94,93 +69,49 @@ public sealed class SlotEditor<T>(SaveFile SAV)
             return SlotTouchResult.FailDestination;
 
         var settings = EntityImportSettings.None;
-
-        var sourcePK = source.Read(SAV);
-        var destPK = dest.Read(SAV);
-
-        using var change = Changelog.Begin([source, dest]);
-
-        if (!source.WriteTo(SAV, destPK, settings))
-            return SlotTouchResult.FailSource;
-
-        if (!dest.WriteTo(SAV, sourcePK, settings))
-            return SlotTouchResult.FailDestination;
-
-        change.Commit();
-
-        NotifySlotChanged(source, SlotTouchType.Swap, destPK);
-        NotifySlotChanged(dest, SlotTouchType.Swap, sourcePK);
+        var s = source.Read(SAV);
+        var d = dest.Read(SAV);
+        WriteSlot(source, s, SlotTouchType.None, settings);
+        WriteSlot(dest, d, SlotTouchType.Swap, settings);
 
         return SlotTouchResult.Success;
     }
 
-    /// <summary>
-    /// Performs a batch operation against multiple slots as one undoable operation.
-    /// </summary>
-    /// <param name="slots">Slots affected by the operation.</param>
-    /// <param name="action">
-    /// Action which performs the actual modifications. The slots have already
-    /// been captured by the changelog when this action executes.
-    /// </param>
-    public bool Batch(IEnumerable<ISlotInfo> slots, Action<IReadOnlyList<ISlotInfo>> action)
+    private bool WriteSlot(ISlotInfo slot, PKM pk, SlotTouchType type = SlotTouchType.Set, EntityImportSettings setDetail = default)
     {
-        var affected = slots.ToArray();
+        Changelog.AddNewChange(slot);
+        var result = slot.WriteTo(SAV, pk, setDetail);
+        if (result)
+            NotifySlotChanged(slot, type, pk);
+        return result;
+    }
 
-        if (affected.Length == 0)
-            return false;
-
-        foreach (var slot in affected)
-        {
-            if (!slot.CanWriteTo(SAV))
-                return false;
-        }
-
-        using var change = Changelog.Begin(affected);
-
-        action(affected);
-        // Disposing `change` rolls back the captured state, even if the action throws.
-
-        change.Commit();
-        foreach (var slot in affected)
-        {
-            var pk = slot.Read(SAV);
-            NotifySlotChanged(slot, SlotTouchType.Set, pk);
-        }
-
-        return true;
+    private bool DeleteSlot(ISlotInfo slot)
+    {
+        var pk = SAV.BlankPKM;
+        var settings = EntityImportSettings.None;
+        return WriteSlot(slot, pk, SlotTouchType.Delete, settings);
     }
 
     /// <summary>
-    /// Undoes the last change and notifies every affected slot.
+    /// Undo the last change made to a slot.
     /// </summary>
     public void Undo()
     {
         if (!Changelog.CanUndo)
             return;
-
-        var slots = Changelog.Undo();
-
-        foreach (var slot in slots)
-        {
-            var pk = slot.Read(SAV);
-            NotifySlotChanged(slot, SlotTouchType.Undo, pk);
-        }
+        var slot = Changelog.Undo();
+        NotifySlotChanged(slot, SlotTouchType.Delete, slot.Read(SAV));
     }
 
     /// <summary>
-    /// Redoes the last undone change and notifies every affected slot.
+    /// Redo the last undone change made to a slot.
     /// </summary>
     public void Redo()
     {
         if (!Changelog.CanRedo)
             return;
-
-        var slots = Changelog.Redo();
-
-        foreach (var slot in slots)
-        {
-            var pk = slot.Read(SAV);
-            NotifySlotChanged(slot, SlotTouchType.Redo, pk);
-        }
+        var slot = Changelog.Redo();
+        NotifySlotChanged(slot, SlotTouchType.Delete, slot.Read(SAV));
     }
 }
