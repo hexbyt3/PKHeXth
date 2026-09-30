@@ -39,7 +39,17 @@ jobs:
       id: check_release
       run: |
         $baseVersion = "${{ steps.get_version.outputs.VERSION }}"
-        $changedFiles = git diff --name-only HEAD~1 HEAD
+        # Every file the push changed, not just its last commit: a push that ends in a
+        # no-file commit (e.g. an "-s ours" upstream sync-point merge) must still release.
+        $before = "${{ github.event.before }}"
+        $changedFiles = $null
+        if ($before -and $before -notmatch '^0+$') {
+          $changedFiles = git diff --name-only $before HEAD 2>$null
+          if ($LASTEXITCODE -ne 0) { $changedFiles = $null }
+        }
+        if ($null -eq $changedFiles) {
+          $changedFiles = git diff --name-only HEAD~1 HEAD
+        }
 
         # Check what type of update this is
         $isVersionUpdate = $false
@@ -114,7 +124,17 @@ jobs:
       id: get_changes
       run: |
         $shouldRelease = $false
-        $changedFiles = git diff --name-only HEAD~1 HEAD
+        # Every file the push changed, not just its last commit: a push that ends in a
+        # no-file commit (e.g. an "-s ours" upstream sync-point merge) must still release.
+        $before = "${{ github.event.before }}"
+        $changedFiles = $null
+        if ($before -and $before -notmatch '^0+$') {
+          $changedFiles = git diff --name-only $before HEAD 2>$null
+          if ($LASTEXITCODE -ne 0) { $changedFiles = $null }
+        }
+        if ($null -eq $changedFiles) {
+          $changedFiles = git diff --name-only HEAD~1 HEAD
+        }
 
         foreach ($file in $changedFiles) {
           if ($file -eq 'Directory.Build.props' -or
