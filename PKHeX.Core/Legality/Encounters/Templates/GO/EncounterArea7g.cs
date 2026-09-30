@@ -31,7 +31,7 @@ public sealed record EncounterArea7g : ISpeciesForm
     }
 
     private const int meta = 4;
-    private const int entrySize = (2 * sizeof(int)) + 2;
+    private const int entrySize = (2 * sizeof(ushort)) + 8;
 
     private static EncounterArea7g GetArea(ReadOnlySpan<byte> data)
     {
@@ -54,12 +54,17 @@ public sealed record EncounterArea7g : ISpeciesForm
 
     private static EncounterSlot7GO ReadSlot(ReadOnlySpan<byte> entry, ushort species, byte form)
     {
-        int start = ReadInt32LittleEndian(entry);
-        int end = ReadInt32LittleEndian(entry[4..]);
-        var sg = entry[8];
-        var shiny = (Shiny)(sg & 0x3F);
-        var gender = (Gender)(sg >> 6);
-        var type = (PogoType)entry[9];
-        return new EncounterSlot7GO(start, end, species, form, type.GetMinLevel(), EncountersGO.MAX_LEVEL, shiny, gender, type);
+        ushort start = ReadUInt16LittleEndian(entry);
+        ushort end = ReadUInt16LittleEndian(entry[2..]);
+
+        var shiny = (Shiny)entry[4];
+        var gender = (Gender)entry[5];
+        var type = (PogoType)entry[6];
+        //var ball = (PogoBallRestriction)entry[7];
+
+        var flags = (PogoFlags)entry[8];
+        var minLevel = entry[9];
+        var minIV = entry[10];
+        return new EncounterSlot7GO(start, end, species, form, minLevel, minIV, shiny, gender, type, flags);
     }
 }

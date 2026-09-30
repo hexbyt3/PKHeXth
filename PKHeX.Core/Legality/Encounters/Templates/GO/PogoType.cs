@@ -1,4 +1,4 @@
-using static PKHeX.Core.PogoType;
+using static PKHeX.Core.Ball;
 
 namespace PKHeX.Core;
 
@@ -7,32 +7,25 @@ namespace PKHeX.Core;
 /// </summary>
 public enum PogoType : byte
 {
-    None, // Don't use this.
+    None = 0, // Don't use this.
 
     // Pokémon captured in the wild.
     Wild,
-    WildLevel20,
-    WildLevel25,
 
     // Pokémon hatched from Eggs.
     Egg,
     Egg12km,
 
-    // Pokémon captured after completing Raid Battles. IV, Level, and Poké Ball permissions may vary depending on the Pokémon.
+    // Pokémon captured after completing Raid Battles.
     Raid = 10,
     RaidMythical,
     RaidUltraBeast,
     RaidShadow,
     RaidShadowMythical,
-    RaidGOWA,
-    RaidMythicalGOWA,
-    RaidUltraBeastGOWA,
-    RaidShadowGOWA,
-    RaidShadowMythicalGOWA,
+    RaidShadowUltraBeast,
 
-    // Pokémon captured after completing various types of Field Research.
+    // Pokémon captured after completing various types of Field Research or other in-game features.
     FieldResearch = 20,
-    FieldResearchLevelRange,
     ResearchBreakthrough,
     SpecialResearch,
     TimedResearch,
@@ -43,75 +36,21 @@ public enum PogoType : byte
     GOPass,
     ReferralBonus,
 
-    // Pokémon captured after completing Special Research. IV, Level, and Poké Ball permissions may vary depending on the Pokémon.
-    SpecialMythical = 40,
-    SpecialMythicalPoke,
-    SpecialUltraBeast,
-    SpecialGigantamax,
-    SpecialPoke,
-    SpecialLastBall,
-    SpecialNoHUD,
-    SpecialLevel10,
-    SpecialLevel20,
-    SpecialLevelRange,
-    SpecialMythicalLevel10,
-    SpecialMythicalLevel20,
-    SpecialMythicalLevelRange,
-    SpecialUltraBeastLevel10,
-    SpecialUltraBeastLevel20,
-    SpecialUltraBeastLevelRange,
-    SpecialGigantamaxLevel10,
-    SpecialGigantamaxLevel20,
-    SpecialGigantamaxLevelRange,
-
-    // Pokémon captured after completing Timed Research or GO Passes. IV, Level, and Poké Ball permissions may vary depending on the Pokémon.
-    TimedMythical = 60,
-    TimedMythicalPoke,
-    TimedUltraBeast,
-    TimedGigantamax,
-    TimedPoke,
-    TimedLastBall,
-    TimedNoHUD,
-    TimedLevel10,
-    TimedLevel20,
-    TimedLevelRange,
-    TimedMythicalLevel10,
-    TimedMythicalLevel20,
-    TimedMythicalLevelRange,
-    TimedUltraBeastLevel10,
-    TimedUltraBeastLevel20,
-    TimedUltraBeastLevelRange,
-    TimedGigantamaxLevel10,
-    TimedGigantamaxLevel20,
-    TimedGigantamaxLevelRange,
-    TimedShadow,
-    TimedShadowLevel10,
-    TimedShadowLevel20,
-    TimedShadowLevelRange,
-    TimedShadowMythical,
-    TimedShadowMythicalLevel10,
-    TimedShadowMythicalLevel20,
-    TimedShadowMythicalLevelRange,
-
     // Pokémon captured after winning Trainer Battles in the GO Battle League.
-    GBL = 90,
+    GBL = 40,
     GBLMythical,
     GBLEvent,
 
     // Shadow Pokémon captured after defeating members of Team GO Rocket.
-    Shadow = 100,
+    Shadow = 50,
     ShadowMythical,
     ShadowUltraBeast,
 
     // Pokémon captured after completing Max Battles.
-    MaxBattle = 110,
+    MaxBattle = 60,
     MaxBattleMythical,
     MaxBattleUltraBeast,
     MaxBattleGigantamax,
-    MaxBattleGOWA,
-    MaxBattleMythicalGOWA,
-    MaxBattleUltraBeastGOWA,
-    MaxBattleGigantamaxGOWA,
 
     /// <summary> Pokémon captured from Special Research or Timed Research with a Premier Ball. </summary>
     /// <remarks>
@@ -122,216 +61,87 @@ public enum PogoType : byte
     /// This bug was fixed with the release of version 0.269.2.
     /// </remarks>
     PremierBallBug = 254,
-    PremierBallBugMythical,
+    PremierBallBugMythical = 255,
 }
 
-/// <summary>
-/// Extension methods for <see cref="PogoType"/>.
-/// </summary>
-public static class PogoTypeExtensions
+public static class PogoExtensions
 {
-    /// <summary>
-    /// Gets the minimum level (relative to GO's 1-<see cref="EncountersGO.MAX_LEVEL"/>) the <see cref="encounterType"/> must have.
-    /// </summary>
-    /// <param name="encounterType">Descriptor indicating how the Pokémon was encountered in GO.</param>
-    public static byte GetMinLevel(this PogoType encounterType) => encounterType switch
+    private const Ball TransferSafariBall = Strange;
+
+    public static bool IsRaid(this PogoType type) => type is PogoType.Raid
+        or PogoType.RaidMythical
+        or PogoType.RaidUltraBeast
+        or PogoType.RaidShadow
+        or PogoType.RaidShadowMythical
+        or PogoType.RaidShadowUltraBeast;
+
+    public static bool IsShadow(this PogoType type) => type is PogoType.Shadow
+        or PogoType.ShadowMythical
+        or PogoType.ShadowUltraBeast
+        or PogoType.RaidShadow
+        or PogoType.RaidShadowMythical
+        or PogoType.RaidShadowUltraBeast;
+
+    public static bool IsMaxBattle(this PogoType type) => type is PogoType.MaxBattle
+        or PogoType.MaxBattleMythical
+        or PogoType.MaxBattleUltraBeast
+        or PogoType.MaxBattleGigantamax;
+
+    public static Ball GetFixedBall(this PogoBallRestriction ball) => ball switch
     {
-        Wild => 1,
-        WildLevel20 => 20,
-        WildLevel25 => 25,
-        Egg => 1,
-        Egg12km => 8,
-        Raid => 20,
-        RaidMythical => 20,
-        RaidUltraBeast => 20,
-        RaidShadow => 20,
-        RaidShadowMythical => 20,
-        RaidGOWA => 20,
-        RaidMythicalGOWA => 20,
-        RaidUltraBeastGOWA => 20,
-        RaidShadowGOWA => 20,
-        RaidShadowMythicalGOWA => 20,
-        FieldResearchLevelRange => 1,
-        SpecialLevel10 => 10,
-        SpecialLevel20 => 20,
-        SpecialLevelRange => 1,
-        SpecialMythicalLevel10 => 10,
-        SpecialMythicalLevel20 => 20,
-        SpecialMythicalLevelRange => 1,
-        SpecialUltraBeastLevel10 => 10,
-        SpecialUltraBeastLevel20 => 20,
-        SpecialUltraBeastLevelRange => 1,
-        SpecialGigantamaxLevel10 => 10,
-        SpecialGigantamaxLevel20 => 20,
-        SpecialGigantamaxLevelRange => 1,
-        TimedLevel10 => 10,
-        TimedLevel20 => 20,
-        TimedLevelRange => 1,
-        TimedMythicalLevel10 => 10,
-        TimedMythicalLevel20 => 20,
-        TimedMythicalLevelRange => 1,
-        TimedUltraBeastLevel10 => 10,
-        TimedUltraBeastLevel20 => 20,
-        TimedUltraBeastLevelRange => 1,
-        TimedGigantamaxLevel10 => 10,
-        TimedGigantamaxLevel20 => 20,
-        TimedGigantamaxLevelRange => 1,
-        TimedShadowLevel10 => 10,
-        TimedShadowLevel20 => 20,
-        TimedShadowLevelRange => 1,
-        TimedShadowMythicalLevel10 => 10,
-        TimedShadowMythicalLevel20 => 20,
-        TimedShadowMythicalLevelRange => 1,
-        GBL => 20,
-        GBLMythical => 20,
-        GBLEvent => 20,
-        Shadow => 8,
-        ShadowMythical => 25,
-        ShadowUltraBeast => 8,
-        MaxBattle => 20,
-        MaxBattleMythical => 20,
-        MaxBattleUltraBeast => 20,
-        MaxBattleGigantamax => 20,
-        MaxBattleGOWA => 20,
-        MaxBattleMythicalGOWA => 20,
-        MaxBattleUltraBeastGOWA => 20,
-        MaxBattleGigantamaxGOWA => 20,
-        _ => 15,
+        PogoBallRestriction.OnlyPoke => Poke,
+        PogoBallRestriction.OnlyPremier => Premier,
+        PogoBallRestriction.OnlyBeast => Beast,
+        PogoBallRestriction.OnlySafari => TransferSafariBall,
+        _ => None,
     };
 
-    /// <summary>
-    /// Gets the minimum IVs (relative to GO's 0-15) the <see cref="encounterType"/> must have.
-    /// </summary>
-    /// <param name="encounterType">Descriptor indicating how the Pokémon was encountered in GO.</param>
-    /// <returns>Required minimum IV (0-15)</returns>
-    public static int GetMinIV(this PogoType encounterType) => encounterType switch
+    public static bool IsValidBall(this PogoBallRestriction ball, Ball current, PogoType type, PogoFlags flags)
     {
-        Wild => 0,
-        WildLevel20 => 0,
-        WildLevel25 => 0,
-        RaidMythical => 10,
-        RaidShadowMythical => 8,
-        RaidShadowMythicalGOWA => 8,
-        SpecialMythical => 10,
-        SpecialMythicalPoke => 10,
-        SpecialLastBall => 10,
-        SpecialNoHUD => 10,
-        SpecialMythicalLevel10 => 10,
-        SpecialMythicalLevel20 => 10,
-        SpecialMythicalLevelRange => 10,
-        TimedMythical => 10,
-        TimedMythicalPoke => 10,
-        TimedLastBall => 10,
-        TimedNoHUD => 10,
-        TimedMythicalLevel10 => 10,
-        TimedMythicalLevel20 => 10,
-        TimedMythicalLevelRange => 10,
-        TimedShadowMythical => 10,
-        TimedShadowMythicalLevel10 => 10,
-        TimedShadowMythicalLevel20 => 10,
-        TimedShadowMythicalLevelRange => 10,
-        GBLMythical => 10,
-        GBLEvent => 0,
-        ShadowMythical => 2,
-        MaxBattleMythical => 10,
-        MaxBattleMythicalGOWA => 10,
-        PremierBallBugMythical => 10,
-        _ => 1,
-    };
+        if (current is Master)
+            return ball.IsMasterBallUsable(type);
+        if (current is TransferSafariBall)
+            return ball.IsSafariBallUsable(type, flags);
 
-    /// <summary>
-    /// Checks if the <see cref="ball"/> is valid for the <see cref="encounterType"/>.
-    /// </summary>
-    /// <param name="encounterType">Descriptor indicating how the Pokémon was encountered in GO.</param>
-    /// <param name="ball">Current <see cref="Ball"/> the Pokémon is in.</param>
-    /// <returns>True if valid, false if invalid.</returns>
-    public static bool IsBallValid(this PogoType encounterType, Ball ball)
-    {
-        var req = encounterType.GetValidBall();
-        if (req == Ball.None)
-            return (uint)(ball - 2) <= 2; // Poké, Great, Ultra
-        return ball == req;
+        return ball switch
+        {
+            PogoBallRestriction.None => true,
+            PogoBallRestriction.StandardMaster => current is Poke or Great or Ultra,
+            PogoBallRestriction.Standard => current is Poke or Great or Ultra,
+            PogoBallRestriction.OnlyPoke => current is Poke,
+            PogoBallRestriction.OnlyPremier => current is Premier,
+            PogoBallRestriction.OnlyBeast => current is Beast,
+            _ => false,
+        };
     }
 
-    /// <summary>
-    /// Checks if <see cref="Ball.Master"/> can be used for the <see cref="encounterType"/>.
-    /// </summary>
-    /// <param name="encounterType">Descriptor indicating how the Pokémon was encountered in GO.</param>
-    /// <returns>True if valid, false if invalid.</returns>
-    public static bool IsMasterBallUsable(this PogoType encounterType) => encounterType switch
-    {
-        Egg or Egg12km => false,
-        SpecialMythicalPoke or SpecialUltraBeast or SpecialPoke or SpecialLastBall or SpecialNoHUD or SpecialUltraBeastLevel10 or SpecialUltraBeastLevel20 or SpecialUltraBeastLevelRange => false,
-        TimedMythicalPoke or TimedUltraBeast or TimedPoke or TimedLastBall or TimedNoHUD or TimedUltraBeastLevel10 or TimedUltraBeastLevel20 or TimedUltraBeastLevelRange => false,
-        PremierBallBug or PremierBallBugMythical => false,
-        _ => true,
-    };
+    public static bool IsMasterBallUsable(this PogoBallRestriction ball, PogoType type) => ball is not (PogoBallRestriction.Standard or PogoBallRestriction.OnlyPoke or PogoBallRestriction.OnlyBeast);
 
-    /// <summary>
-    /// Checks if <see cref="Ball.Safari"/> can be used for the <see cref="encounterType"/>.
-    /// </summary>
-    /// <param name="encounterType">Descriptor indicating how the Pokémon was encountered in GO.</param>
-    /// <returns>True if valid, false if invalid.</returns>
-    public static bool IsSafariBallUsable(this PogoType encounterType, ushort species) => encounterType switch
+    public static bool IsSafariBallUsable(this PogoBallRestriction ball, PogoType type, PogoFlags flags)
     {
-        Egg or Egg12km => false,
-        Raid or RaidMythical or RaidUltraBeast or RaidShadow or RaidShadowMythical => false,
-        ResearchBreakthrough or VivillonCollector or ReferralBonus => false,
-        TimedMythicalPoke or TimedUltraBeast or TimedPoke or TimedLastBall or TimedNoHUD or TimedUltraBeastLevel10 or TimedUltraBeastLevel20 or TimedUltraBeastLevelRange => false,
-        GBL or GBLMythical or GBLEvent => false,
-        Shadow or ShadowMythical or ShadowUltraBeast => false,
-        MaxBattle or MaxBattleMythical or MaxBattleUltraBeast or MaxBattleGigantamax => false,
-        PremierBallBug or PremierBallBugMythical => false,
-        _ when IsSpecialResearch(encounterType) && SpeciesCategory.IsSpecialPokemon(species) => false,
-        _ => true,
-    };
+        if (ball is PogoBallRestriction.OnlySafari)
+            return true;
+        if (type.IsRaid() || type.IsMaxBattle())
+            return flags.HasFlag(PogoFlags.FeaturedWildArea);
 
-    /// <summary>
-    /// Gets a valid ball that the <see cref="encounterType"/> can have based on the type of capture in Pokémon GO.
-    /// </summary>
-    /// <param name="encounterType">Descriptor indicating how the Pokémon was encountered in GO.</param>
-    /// <returns><see cref="Ball.None"/> if no specific ball is required, otherwise returns the required ball.</returns>
-    public static Ball GetValidBall(this PogoType encounterType) => encounterType switch
-    {
-        Egg => Ball.Poke,
-        Egg12km => Ball.Poke,
-        Raid => Ball.Premier,
-        RaidMythical => Ball.Premier,
-        RaidUltraBeast => Ball.Beast,
-        RaidShadow => Ball.Premier,
-        RaidShadowMythical => Ball.Premier,
-        RaidGOWA => Ball.Premier,
-        RaidMythicalGOWA => Ball.Premier,
-        RaidUltraBeastGOWA => Ball.Beast,
-        RaidShadowGOWA => Ball.Premier,
-        RaidShadowMythicalGOWA => Ball.Premier,
-        SpecialMythicalPoke => Ball.Poke,
-        SpecialUltraBeast => Ball.Beast,
-        SpecialPoke => Ball.Poke,
-        SpecialUltraBeastLevel10 => Ball.Beast,
-        SpecialUltraBeastLevel20 => Ball.Beast,
-        SpecialUltraBeastLevelRange => Ball.Beast,
-        TimedMythicalPoke => Ball.Poke,
-        TimedUltraBeast => Ball.Beast,
-        TimedPoke => Ball.Poke,
-        TimedUltraBeastLevel10 => Ball.Beast,
-        TimedUltraBeastLevel20 => Ball.Beast,
-        TimedUltraBeastLevelRange => Ball.Beast,
-        PremierBallBug => Ball.Premier,
-        PremierBallBugMythical => Ball.Premier,
-        Shadow => Ball.Premier,
-        ShadowMythical => Ball.Premier,
-        ShadowUltraBeast => Ball.Beast,
-        MaxBattle => Ball.Premier,
-        MaxBattleMythical => Ball.Premier,
-        MaxBattleUltraBeast => Ball.Beast,
-        MaxBattleGigantamax => Ball.Premier,
-        MaxBattleGOWA => Ball.Premier,
-        MaxBattleMythicalGOWA => Ball.Premier,
-        MaxBattleUltraBeastGOWA => Ball.Beast,
-        MaxBattleGigantamaxGOWA => Ball.Premier,
-        _ => Ball.None, // Poké, Great, Ultra
-    };
+        return type switch
+        {
+            PogoType.Egg or PogoType.Egg12km => false,
+            PogoType.ResearchBreakthrough or PogoType.VivillonCollector or PogoType.ReferralBonus => false,
+            PogoType.GBL or PogoType.GBLMythical or PogoType.GBLEvent => false,
+            PogoType.Shadow or PogoType.ShadowMythical or PogoType.ShadowUltraBeast => false,
+            _ => true,
+        };
+    }
+}
 
-    private static bool IsSpecialResearch(this PogoType encounterType) => encounterType is SpecialResearch or >= (PogoType)40 and <= (PogoType)69;
+public enum PogoBallRestriction : byte
+{
+    None = 0,
+    StandardMaster = 1,
+    Standard = 2,
+    OnlyPoke = 3,
+    OnlyPremier = 4,
+    OnlyBeast = 5,
+    OnlySafari = 6,
 }

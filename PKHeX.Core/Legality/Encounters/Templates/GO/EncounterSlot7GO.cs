@@ -6,7 +6,7 @@ namespace PKHeX.Core;
 /// Encounter Slot found in <see cref="EntityContext.Gen7b"/> (GO Park).
 /// <inheritdoc cref="PogoSlotExtensions" />
 /// </summary>
-public sealed record EncounterSlot7GO(int StartDate, int EndDate, ushort Species, byte Form, byte LevelMin, byte LevelMax, Shiny Shiny, Gender Gender, PogoType Type)
+public sealed record EncounterSlot7GO(ushort DayStart, ushort DayEnd, ushort Species, byte Form, byte LevelMin, byte MinimumIV, Shiny Shiny, Gender Gender, PogoType Type, PogoFlags Flags)
     : IEncounterable, IEncounterMatch, IPogoSlot, IEncounterConvertible<PB7>
 {
     public byte Generation => 7;
@@ -19,16 +19,19 @@ public sealed record EncounterSlot7GO(int StartDate, int EndDate, ushort Species
 
     public GameVersion Version => GameVersion.GO;
     public ushort Location => Locations.GO7;
+    public byte LevelMax => EncountersGO.MAX_LEVEL;
+    public bool IsLocalDayStart => Flags.HasFlag(PogoFlags.LocalDateStart);
+    public bool IsLocalDayEnd => Flags.HasFlag(PogoFlags.LocalDateEnd);
+    public bool IsAlwaysSpecialTrade => Flags.HasFlag(PogoFlags.AlwaysSpecialTrade);
+
     public string Name => $"GO Encounter ({Version})";
     public string LongName
     {
         get
         {
             var init = $"{Name} ({Type})";
-            if (StartDate == 0 && EndDate == 0)
-                return init;
-            var start = PogoDateRangeExtensions.GetDateString(StartDate);
-            var end = PogoDateRangeExtensions.GetDateString(EndDate);
+            var start = PogoDateRangeExtensions.GetDateString(DayStart, IsLocalDayStart ? 1 : 0, true);
+            var end = PogoDateRangeExtensions.GetDateString(DayEnd, IsLocalDayEnd ? -1 : 0);
             return $"{init}: {start}-{end}";
         }
     }
@@ -86,7 +89,7 @@ public sealed record EncounterSlot7GO(int StartDate, int EndDate, ushort Species
         var nature = criteria.GetNature();
         var ability = criteria.GetAbilityFromNumber(Ability);
 
-        criteria.SetRandomIVsGO(pk, Type.GetMinIV());
+        criteria.SetRandomIVsGO(pk, MinimumIV);
         pk.Nature = pk.StatNature = nature;
         pk.Gender = gender;
         pk.RefreshAbility(ability);
@@ -144,4 +147,12 @@ public sealed record EncounterSlot7GO(int StartDate, int EndDate, ushort Species
         return EncounterMatchRating.Match;
     }
     #endregion
+}
+
+public enum PogoFlags : byte
+{
+    LocalDateStart = 1 << 0,
+    LocalDateEnd = 1 << 1,
+    FeaturedWildArea = 1 << 2,
+    AlwaysSpecialTrade = 1 << 4,
 }
