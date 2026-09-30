@@ -1347,7 +1347,7 @@ public partial class Main : Form
     {
         try
         {
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
             if (!SaveFinder.TryDetectSaveFile(cts.Token, out var sav))
                 return;
 

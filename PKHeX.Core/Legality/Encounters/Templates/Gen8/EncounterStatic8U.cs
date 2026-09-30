@@ -87,7 +87,7 @@ public sealed record EncounterStatic8U : EncounterStatic8Nest<EncounterStatic8U>
             pk.PID = ShinyUtil.GetShinyPID(pk.TID16, pk.SID16, pk.PID, ShinyXor);
     }
 
-    public override void GenerateSeed64(PKM pk, ulong seed)
+    public override void GenerateSeed64(PKM pk, ITrainerInfo tr, ulong seed)
     {
         var pk8 = (PK8)pk;
         var pi = PersonalTable.SWSH[Species, Form];

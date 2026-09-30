@@ -326,7 +326,7 @@ public static class WinFormsUtil
         {
             try
             {
-                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                 var sav = SaveFinder.FindMostRecentSaveFile(cts.Token);
                 return sav?.Metadata.FilePath;
             }
