@@ -52,16 +52,18 @@ public sealed class MovePPVerifier : Verifier
         {
             for (int i = 0; i < ups.Length; i++)
             {
-                if (ups[i] != 0)
-                    data.AddLine(GetInvalid(MovePPUpsTooHigh_0, (ushort)(i + 1)));
+                var value = ups[i];
+                if (value != 0)
+                    data.AddLine(GetInvalid(MovePPUpsTooHigh_01, (ushort)(i + 1), (ushort)value));
             }
         }
-        else
+        else // Check specific move indexes
         {
             for (int i = 0; i < ups.Length; i++)
             {
-                if (!Legal.IsPPUpAvailable(moves[i]) && ups[i] != 0)
-                    data.AddLine(GetInvalid(MovePPUpsTooHigh_0, (ushort)(i + 1)));
+                var value = ups[i];
+                if (!Legal.IsPPUpAvailable(moves[i]) && value != 0)
+                    data.AddLine(GetInvalid(MovePPUpsTooHigh_01, (ushort)(i + 1), (ushort)value));
             }
         }
 

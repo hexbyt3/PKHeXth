@@ -293,11 +293,9 @@ public sealed class LegalityCheckLocalization
     public string MoveFExpectSingle_0 { get; set; } = "Expected: {0}";
     public string MoveKeldeoMismatch { get; set; } = "Keldeo Move/Form mismatch.";
     public string MovePPMatchesVirtualConsole { get; set; } = "Move PP exactly matches values from the 3DS Virtual Console transfer bug.";
-    public string MovePPExpectHealed_0 { get; set; } = "Move {0} PP is below the amount expected.";
-    public string MovePPExpectHealed_01 { get; set; } = "Move {0} PP is expected to be {1}.";
-    public string MovePPTooHigh_0 { get; set; } = "Move {0} PP is above the amount allowed.";
-    public string MovePPTooHigh_01 { get; set; } = "Move {0} PP ({1}) is above the amount allowed.";
-    public string MovePPUpsTooHigh_0 { get; set; } = "Move {0} PP Ups is above the amount allowed.";
+    public string MovePPExpectHealed_01 { get; set; } = "Move {0} PP is below the amount expected ({1}).";
+    public string MovePPTooHigh_01 { get; set; } = "Move {0} PP is above the amount allowed ({1}).";
+    public string MovePPUpsTooHigh_01 { get; set; } = "Move {0} PP Ups is above the amount allowed ({1}).";
 
     public string MoveShopAlphaMoveShouldBeMastered_0 { get; set; } = "Alpha Move should be marked as mastered.";
     public string MoveShopAlphaMoveShouldBeOther { get; set; } = "Alpha encounter cannot be found with this Alpha Move.";

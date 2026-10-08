@@ -8,7 +8,8 @@ namespace PKHeX.Core;
 /// </summary>
 public static class LegalityCheckResultCodeExtensions
 {
-    public static bool IsArgument(this LegalityCheckResultCode code) => code is < FirstWithMove and >= FirstWithArgument;
+    public static bool IsArgument(this LegalityCheckResultCode code) => code is < FirstWithTwoArguments and >= FirstWithArgument;
+    public static bool IsArgument2(this LegalityCheckResultCode code) => code is < FirstWithMove and >= FirstWithTwoArguments;
     public static bool IsMove(this LegalityCheckResultCode code) => code is < FirstWithItem and >= FirstWithMove;
     public static bool IsItem(this LegalityCheckResultCode code) => code is < FirstWithLanguage and >= FirstWithItem;
     public static bool IsLanguage(this LegalityCheckResultCode code) => code is < FirstWithMemory and >= FirstWithLanguage;
@@ -174,11 +175,9 @@ public static class LegalityCheckResultCodeExtensions
 
         // Moves
         MoveEvoFCombination_0 => localization.MoveEvoFCombination_0,
-        MovePPExpectHealed_0 => localization.MovePPExpectHealed_0,
         MovePPExpectHealed_01 => localization.MovePPExpectHealed_01,
-        MovePPTooHigh_0 => localization.MovePPTooHigh_0,
         MovePPTooHigh_01 => localization.MovePPTooHigh_01,
-        MovePPUpsTooHigh_0 => localization.MovePPUpsTooHigh_0,
+        MovePPUpsTooHigh_01 => localization.MovePPUpsTooHigh_01,
         MoveShopMasterInvalid_0 => localization.MoveShopMasterInvalid_0,
         MoveShopMasterNotLearned_0 => localization.MoveShopMasterNotLearned_0,
         MoveShopPurchaseInvalid_0 => localization.MoveShopPurchaseInvalid_0,
