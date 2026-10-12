@@ -173,8 +173,8 @@ public sealed record EncounterStatic6(GameVersion Version)
         if (met == Location)
             return true;
 
-        if (IsEgg)
-            return !pk.IsEgg || met == Locations.LinkTrade6;
+        if (IsEgg) // Fork: upstream's link-traded check for unhatched static eggs (1f556062d) is skipped.
+            return true;
 
         // Cosplay Pikachu is given from multiple other locations and can change form after; permit all.
         if (Species == (int)Core.Species.Pikachu)
