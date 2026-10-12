@@ -40,7 +40,7 @@ public sealed record EncounterTrade9a : IEncounter9a,
     public byte Gender { get; init; }
     public IndividualValueSet IVs { get; init; }
     public Nature Nature { get; init; } = Nature.Random;
-    private const byte Scale = 128;
+    public const byte Scale = 128;
 
     public string Name => "Trade Encounter";
     public string LongName => Name;

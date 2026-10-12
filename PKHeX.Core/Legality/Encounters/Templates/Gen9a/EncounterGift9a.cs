@@ -19,8 +19,8 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
     public bool IsShiny => false;
     ushort ILocation.EggLocation => 0;
     public byte FlawlessIVCount { get; init; }
-    private const byte NoScale = 0;
-    private bool NoScalarsDefined => Size == NoScale;
+    public const byte NoScale = 0;
+    public bool NoScalarsDefined => Size == NoScale;
     public Moveset Moves { get; init; }
     public IndividualValueSet IVs { get; init; }
     public Nature Nature { get; init; } = Nature.Random;

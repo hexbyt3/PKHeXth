@@ -22,8 +22,8 @@ public sealed record EncounterStatic9a(ushort Species, byte Form, byte Level, by
     public byte LevelMin => Level;
     public byte LevelMax => Level;
 
-    private const byte NoScale = 0;
-    private bool NoScalarsDefined => Size == NoScale;
+    public const byte NoScale = 0;
+    public bool NoScalarsDefined => Size == NoScale;
 
     public Moveset Moves { get; init; }
     public IndividualValueSet IVs { get; init; }
