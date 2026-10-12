@@ -27,6 +27,11 @@ public static class LumioseSolver
     public static bool SearchShinyN { get; set; }
 
     /// <summary>
+    /// Pre-verified seed hint. When set, <see cref="TryGetSeed"/> checks this first via <see cref="LumioseRNG.Verify"/> to skip expensive brute-force recovery.
+    /// </summary>
+    public static ulong? SeedHint { get; set; }
+
+    /// <summary>
     /// Tries to get the <see cref="seed"/> that originated the <see cref="pk"/>.
     /// </summary>
     /// <param name="param">Generating parameters for FixInitSpec</param>
@@ -35,6 +40,13 @@ public static class LumioseSolver
     /// <returns><see langword="true"/> if the seed was found, otherwise <see langword="false"/>.</returns>
     public static bool TryGetSeed(this in GenerateParam9a param, PKM pk, out ulong seed)
     {
+        // If a seed hint was provided, verify it directly instead of brute-forcing.
+        if (SeedHint is { } hint && LumioseRNG.Verify(pk, param, hint))
+        {
+            seed = hint;
+            return true;
+        }
+
         // Technically a rand() result of 0xFFFFFFFF for either EC/PID will double-roll, but we'll just ignore that case due to it being so rare.
 
         if (param.Shiny is Shiny.Random && pk.IsShiny)
