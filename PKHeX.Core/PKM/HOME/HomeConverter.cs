@@ -38,7 +38,7 @@ public static class HomeConverter
             language = 2;
 
         var core = pkh.Core;
-        var side = pkh.DataPK8 ?? new();
+        var side = pkh.DataPK8 ??= new(); // attach only once the entity is convertible
 
         var form = pk3.Form;
         core.Species = species;

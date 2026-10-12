@@ -10,7 +10,7 @@ public sealed class PKH : PKM, IHandlerLanguage, IFormArgument, IHomeTrack, IBat
 {
     public readonly GameDataCore Core;
     public GameDataPB7? DataPB7 { get; private set; }
-    public GameDataPK8? DataPK8 { get; private set; }
+    public GameDataPK8? DataPK8 { get; internal set; }
     public GameDataPA8? DataPA8 { get; private set; }
     public GameDataPB8? DataPB8 { get; private set; }
     public GameDataPK9? DataPK9 { get; private set; }
@@ -433,7 +433,6 @@ public sealed class PKH : PKM, IHandlerLanguage, IFormArgument, IHomeTrack, IBat
     {
         if (pk is PK3 pk3)
         {
-            DataPK8 ??= new GameDataPK8();
             HomeConverter.UpgradeFromPastFormat(pk3, this);
             return;
         }
