@@ -87,6 +87,16 @@ public sealed record EncounterStatic8U : EncounterStatic8Nest<EncounterStatic8U>
             pk.PID = ShinyUtil.GetShinyPID(pk.TID16, pk.SID16, pk.PID, ShinyXor);
     }
 
+    public override void GenerateSeed64(PKM pk, ITrainerInfo tr, ulong seed)
+    {
+        var pk8 = (PK8)pk;
+        var pi = PersonalTable.SWSH[Species, Form];
+        var param = GetParam(pi);
+        Span<int> iv = stackalloc int[6];
+        var criteria = EncounterCriteria.Unrestricted;
+        RaidRNG.TryApply(pk8, seed, iv, param, criteria);
+    }
+
     private GenerateParam8 GetParam(PersonalInfo8SWSH pi)
     {
         var ratio = RemapGenderToParam(Gender, pi);
