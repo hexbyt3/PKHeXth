@@ -10,9 +10,11 @@ public sealed record BatchInfo(PKM Entity)
     /// Legality analysis of the entity.
     /// </summary>
     /// <remarks>
-    /// Eagerly evaluate on ctor, so that the initial state is remembered before any modifications may disturb matching.
+    /// Fork: evaluated on first use, not in the ctor. Bot sets put property edits (e.g. <c>.CurrentLevel=50</c>) ahead of
+    /// <c>$suggest</c> instructions, and the suggestions must see the edited entity; an eager analysis made them suggest
+    /// Plus moves for the generated level instead of the requested one.
     /// </remarks>
-    public readonly LegalityAnalysis Legality = new(Entity);
+    public LegalityAnalysis Legality => field ??= new LegalityAnalysis(Entity);
 
     /// <inheritdoc cref="LegalityAnalysis.Valid"/>
     public bool Legal => Legality.Valid;
