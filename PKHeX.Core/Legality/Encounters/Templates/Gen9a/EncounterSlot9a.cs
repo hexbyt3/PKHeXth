@@ -121,10 +121,8 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
             return EncounterMatchRating.DeferredErrors;
 
         var pidiv = TryGetSeed(pk, out _);
-        if (pidiv is SeedCorrelationResult.Invalid)
+        if (pidiv is SeedCorrelationResult.Invalid) // Only reject Invalid, allow Ignore
             return EncounterMatchRating.DeferredErrors;
-        if (pidiv is SeedCorrelationResult.Ignore)
-            return EncounterMatchRating.Deferred; // might be a better match with another template
 
         return EncounterMatchRating.Match;
     }

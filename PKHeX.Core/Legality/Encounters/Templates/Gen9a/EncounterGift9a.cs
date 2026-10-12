@@ -183,7 +183,7 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
             return EncounterMatchRating.DeferredErrors;
 
         var pidiv = TryGetSeed(pk, out _);
-        if (pidiv != SeedCorrelationResult.Success)
+        if (pidiv is SeedCorrelationResult.Invalid) // Only reject Invalid, allow Ignore
             return EncounterMatchRating.DeferredErrors;
 
         return EncounterMatchRating.Match;
