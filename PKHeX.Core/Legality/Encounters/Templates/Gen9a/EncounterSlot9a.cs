@@ -117,13 +117,19 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
 
     public EncounterMatchRating GetMatchRating(PKM pk)
     {
-        // Check Plus flag only if the Alpha move is actually learned
         if (IsAlpha && pk is IPlusRecord pa9 && pk.PersonalInfo is IPermitPlus p)
         {
             var alphaMove = PersonalTable.ZA[Species, Form].AlphaMove;
-            var hasMoveInSlots = pk.Move1 == alphaMove || pk.Move2 == alphaMove || pk.Move3 == alphaMove || pk.Move4 == alphaMove;
-            if (hasMoveInSlots && !pa9.GetMovePlusFlag(p.PlusMoveIndexes.IndexOf(alphaMove)))
-                return EncounterMatchRating.DeferredErrors;
+            if (!pa9.GetMovePlusFlag(p.PlusMoveIndexes.IndexOf(alphaMove)))
+            {
+                // Pre-evo slot with overlapping level range: flag would be set on capture, so missing = not the real source.
+                if (pk.Species != Species)
+                    return EncounterMatchRating.DeferredErrors;
+
+                // Same species: tolerate a cleared flag only if the alpha move was also forgotten.
+                if (pk.Move1 == alphaMove || pk.Move2 == alphaMove || pk.Move3 == alphaMove || pk.Move4 == alphaMove)
+                    return EncounterMatchRating.DeferredErrors;
+            }
         }
         if (Shiny is Shiny.Never && pk.IsShiny) // Some encounters are shiny locked until a sub-quest is completed.
             return EncounterMatchRating.DeferredErrors;
