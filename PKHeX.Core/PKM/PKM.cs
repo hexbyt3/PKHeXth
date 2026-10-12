@@ -566,6 +566,20 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
         Move3 = value.Length > 2 ? value[2] : default;
         Move4 = value.Length > 3 ? value[3] : default;
         this.SetMaximumPPCurrent(value);
+        ClearPPUpsOnEmptySlots();
+    }
+
+    /// <summary>
+    /// A new moveset can be shorter than the one it replaces (e.g. a batch
+    /// <c>$suggestAll</c> on a Pokémon that knows fewer than four moves). PP Ups
+    /// left behind on an emptied slot fail legality ("PP Ups is above the amount allowed").
+    /// </summary>
+    private void ClearPPUpsOnEmptySlots()
+    {
+        if (Move1 == 0) Move1_PPUps = 0;
+        if (Move2 == 0) Move2_PPUps = 0;
+        if (Move3 == 0) Move3_PPUps = 0;
+        if (Move4 == 0) Move4_PPUps = 0;
     }
 
     public ushort[] RelearnMoves
