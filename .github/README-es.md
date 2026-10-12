@@ -28,7 +28,7 @@ PKHeX espera archivos de guardado que no estén cifrados con las claves específ
 
 ## Building
 
-PKHeX es una aplicación de Windows Forms que requiere [.NET 9.0](https://dotnet.microsoft.com/download/dotnet/9.0).
+PKHeX es una aplicación de Windows Forms que requiere [.NET 10.0](https://dotnet.microsoft.com/download/dotnet/10.0).
 
 El archivo ejecutable puede ser construido con cualquier compilador que soporte C# 13.
 

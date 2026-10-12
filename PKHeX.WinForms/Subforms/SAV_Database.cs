@@ -513,11 +513,11 @@ public partial class SAV_Database : Form
         string path = fbd.SelectedPath;
         Directory.CreateDirectory(path);
 
-        Span<byte> data = stackalloc byte[SAV.SIZE_PARTY];
         foreach (var pk in Results.Select(z => z.Entity))
         {
             var fileName = Path.Combine(path, PathUtil.CleanFileName(pk.FileName));
             pk.ForcePartyData();
+            var data = new byte[pk.SIZE_PARTY];
             pk.WriteDecryptedDataParty(data);
             File.WriteAllBytes(fileName, data);
         }
