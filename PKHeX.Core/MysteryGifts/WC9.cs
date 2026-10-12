@@ -427,7 +427,9 @@ public sealed class WC9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
 
     public override GameVersion Version => OriginGame != 0 ? (GameVersion)OriginGame : GameVersion.SV;
 
-    public override PK9 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria)
+    public override PK9 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria) => ConvertToPKM(tr, criteria, null);
+
+    public override PK9 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria, DateOnly? metDateOverride)
     {
         if (!IsEntity)
             throw new ArgumentException(nameof(IsEntity));
@@ -500,7 +502,7 @@ public sealed class WC9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
             while (!CanBeReceivedByVersion(pk));
         }
 
-        var date = GetSuggestedDate();
+        var date = metDateOverride ?? GetSuggestedDate();
         pk.MetDate = date;
 
         if (OTGender >= 2)

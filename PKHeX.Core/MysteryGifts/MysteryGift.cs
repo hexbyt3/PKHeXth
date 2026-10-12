@@ -88,6 +88,20 @@ public abstract class MysteryGift : IEncounterable, IMoveset, ITrainerID32, IFat
     public PKM ConvertToPKM(ITrainerInfo tr) => ConvertToPKM(tr, EncounterCriteria.Unrestricted);
     public abstract PKM ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria);
 
+    /// <summary>
+    /// Same as <see cref="ConvertToPKM(ITrainerInfo, EncounterCriteria)"/>, but allows the caller to
+    /// override the Met Date used during conversion. Gift types that bake date-dependent fields
+    /// (e.g. patch-era ID32, scalars) override this to thread the date through their construction
+    /// path; types that only need <see cref="PKM.MetDate"/> get the default behavior.
+    /// </summary>
+    public virtual PKM ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria, DateOnly? metDateOverride)
+    {
+        var pk = ConvertToPKM(tr, criteria);
+        if (metDateOverride.HasValue)
+            pk.MetDate = metDateOverride.Value;
+        return pk;
+    }
+
     public abstract bool IsMatchExact(PKM pk, EvoCriteria evo);
     protected abstract bool IsMatchDeferred(PKM pk);
     protected abstract bool IsMatchPartial(PKM pk);

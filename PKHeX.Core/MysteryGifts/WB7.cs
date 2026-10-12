@@ -366,7 +366,9 @@ public sealed class WB7(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, IAw
 
     public bool IsHOMEGift => CardID >= 9000;
 
-    public override PB7 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria)
+    public override PB7 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria) => ConvertToPKM(tr, criteria, null);
+
+    public override PB7 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria, DateOnly? metDateOverride)
     {
         if (!IsEntity)
             throw new ArgumentException(nameof(IsEntity));
@@ -442,7 +444,7 @@ public sealed class WB7(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, IAw
             pk.SID16 = tr.SID16;
         }
 
-        pk.ReceivedDate = pk.MetDate = Date ?? GetSuggestedDate();
+        pk.ReceivedDate = pk.MetDate = metDateOverride ?? Date ?? GetSuggestedDate();
         pk.ReceivedTime = EncounterDate.GetTime();
         pk.IsNicknamed = GetIsNicknamed(redeemLanguage);
         pk.Nickname = pk.IsNicknamed ? GetNickname(redeemLanguage) : SpeciesName.GetSpeciesNameGeneration(Species, pk.Language, Generation);

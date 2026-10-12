@@ -403,7 +403,9 @@ public sealed class WA8(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
 
     public bool IsAlpha { get => false; set { } }
 
-    public override PA8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria)
+    public override PA8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria) => ConvertToPKM(tr, criteria, null);
+
+    public override PA8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria, DateOnly? metDateOverride)
     {
         if (!IsEntity)
             throw new ArgumentException(nameof(IsEntity));
@@ -482,7 +484,8 @@ public sealed class WA8(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
         if (OTGender >= 2)
             pk.ID32 = tr.ID32;
 
-        var date = IsDateRestricted && this.GetDistributionWindow(out var dt) ? dt.GetGenerateDate() : EncounterDate.GetDateSwitch();
+        var date = metDateOverride ??
+            (IsDateRestricted && this.GetDistributionWindow(out var dt) ? dt.GetGenerateDate() : EncounterDate.GetDateSwitch());
         if (IsDateLockJapanese && language != (int)LanguageID.Japanese && date < new DateOnly(2022, 5, 20)) // 2022/05/18
             date = new DateOnly(2022, 5, 20); // Pick a better Start date that can be the language we're generating for.
         pk.MetDate = date;

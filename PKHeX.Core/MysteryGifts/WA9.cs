@@ -401,7 +401,9 @@ public sealed class WA9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
 
     public override GameVersion Version => OriginGame != 0 ? (GameVersion)OriginGame : GameVersion.SV;
 
-    public override PA9 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria)
+    public override PA9 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria) => ConvertToPKM(tr, criteria, null);
+
+    public override PA9 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria, DateOnly? metDateOverride)
     {
         if (!IsEntity)
             throw new ArgumentException(nameof(IsEntity));
@@ -463,7 +465,7 @@ public sealed class WA9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
             EggLocation = EggLocation,
             IsAlpha = IsAlpha,
             ObedienceLevel = currentLevel,
-            MetDate = GetSuggestedDate(),
+            MetDate = metDateOverride ?? GetSuggestedDate(),
         };
 
         var nickname_language = GetLanguage(language);

@@ -395,7 +395,9 @@ public sealed class WC8(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
 
     public override GameVersion Version => OriginGame != 0 ? (GameVersion)OriginGame : GameVersion.SWSH;
 
-    public override PK8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria)
+    public override PK8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria) => ConvertToPKM(tr, criteria, null);
+
+    public override PK8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria, DateOnly? metDateOverride)
     {
         if (!IsEntity)
             throw new ArgumentException(nameof(IsEntity));
@@ -486,7 +488,7 @@ public sealed class WC8(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
         if (pk.Species == (int)Core.Species.Meowstic)
             pk.Form = (byte)(pk.Gender & 1);
 
-        var date = GetSuggestedDate();
+        var date = metDateOverride ?? GetSuggestedDate();
         pk.MetDate = date;
 
         // Prior to 3.0.0, HOME would set the Encryption Constant exactly and not give a random value if it was 0.

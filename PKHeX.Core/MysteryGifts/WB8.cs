@@ -395,7 +395,9 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
 
     public override GameVersion Version => OriginGame != 0 ? (GameVersion)OriginGame : GameVersion.BDSP;
 
-    public override PB8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria)
+    public override PB8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria) => ConvertToPKM(tr, criteria, null);
+
+    public override PB8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria, DateOnly? metDateOverride)
     {
         if (!IsEntity)
             throw new ArgumentException(nameof(IsEntity));
@@ -477,7 +479,8 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
             pk.SID16 = tr.SID16;
         }
 
-        var date = IsDateRestricted && this.GetDistributionWindow(out var dt) ? dt.GetGenerateDate() : EncounterDate.GetDateSwitch();
+        var date = metDateOverride ??
+            (IsDateRestricted && this.GetDistributionWindow(out var dt) ? dt.GetGenerateDate() : EncounterDate.GetDateSwitch());
         if (IsDateLockJapanese && language != (int)LanguageID.Japanese && date < new DateOnly(2022, 5, 20)) // 2022/05/18
             date = new DateOnly(2022, 5, 20); // Pick a better Start date that can be the language we're generating for.
 
