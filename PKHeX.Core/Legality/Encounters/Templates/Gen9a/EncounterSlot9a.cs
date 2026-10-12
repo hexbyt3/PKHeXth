@@ -100,6 +100,13 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
             return false;
         if (pk is IAlphaReadOnly a && a.IsAlpha != IsAlpha)
             return false;
+
+        // For Alpha encounters, prevent pre-evolution slots from matching when the Pokemon
+        // was caught in its evolved form. This handles overlapping level ranges.
+        // e.g., Snover Alpha (42-43) vs Abomasnow Alpha (43-45) - at level 43, only Abomasnow should match for an Abomasnow.
+        if (IsAlpha && pk.Species != Species && evo.LevelUpRequired > 0 && pk.MetLevel >= evo.LevelUpRequired)
+            return false;
+
         return true;
     }
 
