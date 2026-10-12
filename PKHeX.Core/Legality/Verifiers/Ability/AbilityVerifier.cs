@@ -559,6 +559,8 @@ public sealed class AbilityVerifier : Verifier
     {
         if (currentIndex == 2) // Not normally obtainable. Has to visit another game where it can be switched.
         {
+            if (enc.Ability.CanBeHidden())
+                return VALID; // Encounter itself permits hidden ability (e.g. Alpha in Z-A).
             if (AbilityChangeRules.IsAbilityPatchPossible(data.Info.EvoChainsAllGens))
                 return GetValid(AbilityPatchUsed);
             return GetInvalid(AbilityHiddenUnavailable);
