@@ -218,7 +218,10 @@ public sealed class EntityBatchEditor() : BatchEditingBase<PKM, BatchInfo>(Entit
                 return ModifyResult.Error;
         }
         var src = cmd.PropertyValue.AsSpan(CONST_BYTES.Length); // skip prefix
-        StringUtil.LoadHexBytesTo(src, dest, 3);
+        if (src.IsEmpty)
+            dest.Clear();
+        else
+            StringUtil.LoadHexBytesTo(src, dest, 3);
         return ModifyResult.Modified;
     }
 
