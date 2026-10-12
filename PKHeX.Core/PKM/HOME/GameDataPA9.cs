@@ -180,7 +180,7 @@ public sealed class GameDataPA9 : HomeOptional1, IGameDataSide<PA9>, IScaledSize
     public void InitializeFrom(IGameDataSide side, PKH pkh)
     {
         Ball = side.Ball;
-        MetLocation = side.MetLocation;
+        MetLocation = LocationsHOME.GetMetFromSWSH(side.MetLocation);
         EggLocation = side.EggLocation;
 
         if (side is IScaledSize3 s3)

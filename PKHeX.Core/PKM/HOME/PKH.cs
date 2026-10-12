@@ -404,6 +404,7 @@ public sealed class PKH : PKM, IHandlerLanguage, IFormArgument, IHomeTrack, IBat
         if (type == typeof(PA8)) return HomeGameDataFormat.PA8;
         if (type == typeof(PK9)) return HomeGameDataFormat.PK9;
         if (type == typeof(PA9)) return HomeGameDataFormat.PA9;
+        if (type == typeof(PK3)) return HomeGameDataFormat.PK8;
         return HomeGameDataFormat.None;
     }
 
@@ -430,6 +431,13 @@ public sealed class PKH : PKM, IHandlerLanguage, IFormArgument, IHomeTrack, IBat
 
     public void CopyFrom(PKM pk)
     {
+        if (pk is PK3 pk3)
+        {
+            DataPK8 ??= new GameDataPK8();
+            HomeConverter.UpgradeFromPastFormat(pk3, this);
+            return;
+        }
+
         Core.CopyFrom(pk);
              if (pk is PB7 pb7) (DataPB7 ??= new GameDataPB7()).CopyFrom(pb7, this);
         else if (pk is PK7 pk7) (DataPK8 ??= new GameDataPK8()).CopyFrom(pk7, this);

@@ -170,7 +170,7 @@ public sealed class GameDataPA8 : HomeOptional1, IGameDataSide<PA8>, IScaledSize
     public void InitializeFrom(IGameDataSide side, PKH pkh)
     {
         Ball = GetLegendBall(side.Ball, pkh.LA);
-        MetLocation = side.MetLocation;
+        MetLocation = LocationsHOME.GetMetFromSWSH(side.MetLocation);
         EggLocation = side.EggLocation;
 
         if (side is IScaledSize3 s3)

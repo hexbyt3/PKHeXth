@@ -114,7 +114,7 @@ public sealed class GameDataPB8 : HomeOptional1, IGameDataSide<PB8>, IGameDataSp
     public void InitializeFrom(IGameDataSide side, PKH pkh)
     {
         Ball = side.Ball;
-        MetLocation = side.MetLocation;
+        MetLocation = LocationsHOME.GetMetFromSWSH(side.MetLocation);
         EggLocation = side.EggLocation;
 
         if (side is IPokerusStatus p)
