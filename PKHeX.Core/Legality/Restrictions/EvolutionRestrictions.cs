@@ -10,15 +10,15 @@ namespace PKHeX.Core;
 /// <remarks>
 /// Currently only checks "is able to know a move required to level up".
 /// </remarks>
-internal static class EvolutionRestrictions
+public static class EvolutionRestrictions
 {
     /// <summary>
-    /// List of species that evolve from a previous species having a move while leveling up
+    /// Gets the move required for a species to have evolved (if it's a move-based evolution).
     /// </summary>
     /// <remarks>
     /// Using moves with a counter stored in form argument is explicitly checked via other logic. <see cref="IsFormArgEvolution"/>
     /// </remarks>
-    private static ushort GetSpeciesEvolutionMove(ushort species) => species switch
+    public static ushort GetSpeciesEvolutionMove(ushort species) => species switch
     {
         (int)Sylveon => EEVEE,
         (int)MrMime => (int)Mimic,
@@ -41,6 +41,33 @@ internal static class EvolutionRestrictions
         (int)Dudunsparce => (int)HyperDrill,
         (int)Hydrapple => (int)DragonCheer,
         _ => NONE,
+    };
+
+    /// <summary>
+    /// Gets the pre-evolution species and form that learns the required move for a move-based evolution.
+    /// </summary>
+    /// <param name="species">The evolved species</param>
+    /// <returns>Tuple of (preEvoSpecies, preEvoForm), or (0, 0) if not a move evolution</returns>
+    public static (ushort Species, byte Form) GetPreEvolutionForMoveEvolution(ushort species) => species switch
+    {
+        (int)Sylveon => ((ushort)Eevee, 0),
+        (int)MrMime => ((ushort)MimeJr, 0),
+        (int)Sudowoodo => ((ushort)Bonsly, 0),
+        (int)Ambipom => ((ushort)Aipom, 0),
+        (int)Lickilicky => ((ushort)Lickitung, 0),
+        (int)Tangrowth => ((ushort)Tangela, 0),
+        (int)Yanmega => ((ushort)Yanma, 0),
+        (int)Mamoswine => ((ushort)Piloswine, 0),
+        (int)Tsareena => ((ushort)Steenee, 0),
+        (int)Naganadel => ((ushort)Poipole, 0),
+        (int)Grapploct => ((ushort)Clobbopus, 0),
+        (int)Wyrdeer => ((ushort)Stantler, 0),
+        (int)Overqwil => ((ushort)Qwilfish, 1), // Hisuian form
+        (int)Annihilape => ((ushort)Primeape, 0),
+        (int)Farigiraf => ((ushort)Girafarig, 0),
+        (int)Dudunsparce => ((ushort)Dunsparce, 0),
+        (int)Hydrapple => ((ushort)Dipplin, 0),
+        _ => (0, 0),
     };
 
     /// <summary>
@@ -75,8 +102,8 @@ internal static class EvolutionRestrictions
         return species is (int)Runerigus or (int)Wyrdeer or (int)Annihilape or (int)Basculegion or (int)Kingambit or (int)Overqwil;
     }
 
-    private const ushort NONE = 0;
-    private const ushort EEVEE = ushort.MaxValue;
+    public const ushort NONE = 0;
+    public const ushort EEVEE = ushort.MaxValue;
 
     private static ReadOnlySpan<ushort> EeveeFairyMoves =>
     [
