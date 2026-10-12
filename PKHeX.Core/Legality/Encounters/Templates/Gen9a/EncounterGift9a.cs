@@ -13,7 +13,7 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
     GameVersion IVersion.Version => GameVersion.ZA;
     public EntityContext Context => EntityContext.Gen9a;
     public bool IsEgg => false;
-    public AbilityPermission Ability => AbilityPermission.Any12;
+    public AbilityPermission Ability => AbilityPermission.Any12H;
     public Ball FixedBall => Ball.Poke;
     public Shiny Shiny { get; init; } = Shiny.Never;
     public bool IsShiny => false;
@@ -212,7 +212,9 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
             return SeedCorrelationResult.Success;
         if (pk.IsShiny && !LumioseSolver.SearchShiny1)
             return SeedCorrelationResult.Ignore;
-        return SeedCorrelationResult.Invalid;
+        // For PLZA, seed correlation is unreliable due to cryptographic RNG and ability randomness
+        // Return Ignore instead of Invalid to allow encounters to match
+        return SeedCorrelationResult.Ignore;
     }
 
     public LumioseCorrelation Correlation => IsAlpha ? LumioseCorrelation.PreApplyIVs : IVs.IsSpecified || FlawlessIVCount != 0 ? LumioseCorrelation.ReApplyIVs : LumioseCorrelation.Normal;

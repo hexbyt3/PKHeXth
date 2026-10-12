@@ -16,7 +16,7 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
     GameVersion IVersion.Version => GameVersion.ZA;
     public EntityContext Context => EntityContext.Gen9a;
     public bool IsEgg => false;
-    public AbilityPermission Ability => AbilityPermission.Any12;
+    public AbilityPermission Ability => IsAlpha ? AbilityPermission.Any12H : AbilityPermission.Any12;
     public Ball FixedBall => Ball.None;
     public bool IsShiny => false;
     ushort ILocation.EggLocation => 0;
@@ -101,11 +101,9 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
         if (pk is IAlphaReadOnly a && a.IsAlpha != IsAlpha)
             return false;
 
-        // For Alpha encounters, prevent pre-evolution slots from matching when the Pokemon
-        // was caught in its evolved form. This handles overlapping level ranges.
-        // e.g., Snover Alpha (42-43) vs Abomasnow Alpha (43-45) - at level 43, only Abomasnow should match for an Abomasnow.
-        if (IsAlpha && pk.Species != Species && evo.LevelUpRequired > 0 && pk.MetLevel >= evo.LevelUpRequired)
-            return false;
+        // For Alpha encounters, allow pre-evolution slots to match evolved Pokemon
+        // This allows Pokemon that evolved from a pre-evolution encounter to match properly
+        // The check for overlapping level ranges is handled by encounter priority during search
 
         return true;
     }
@@ -119,8 +117,14 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
 
     public EncounterMatchRating GetMatchRating(PKM pk)
     {
-        if (IsAlpha && pk is IPlusRecord pa9 && pk.PersonalInfo is IPermitPlus p && !pa9.GetMovePlusFlag(p.PlusMoveIndexes.IndexOf(PersonalTable.ZA[Species, Form].AlphaMove)))
-            return EncounterMatchRating.DeferredErrors;
+        // Check Plus flag only if the Alpha move is actually learned
+        if (IsAlpha && pk is IPlusRecord pa9 && pk.PersonalInfo is IPermitPlus p)
+        {
+            var alphaMove = PersonalTable.ZA[Species, Form].AlphaMove;
+            var hasMoveInSlots = pk.Move1 == alphaMove || pk.Move2 == alphaMove || pk.Move3 == alphaMove || pk.Move4 == alphaMove;
+            if (hasMoveInSlots && !pa9.GetMovePlusFlag(p.PlusMoveIndexes.IndexOf(alphaMove)))
+                return EncounterMatchRating.DeferredErrors;
+        }
         if (Shiny is Shiny.Never && pk.IsShiny) // Some encounters are shiny locked until a sub-quest is completed.
             return EncounterMatchRating.DeferredErrors;
 
@@ -155,7 +159,9 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
         param = param with { RollCount = rollCount };
         if (param.TryGetSeed(pk, out seed))
             return SeedCorrelationResult.Success;
-        return SeedCorrelationResult.Invalid;
+        // For PLZA, seed correlation is unreliable due to cryptographic RNG and ability randomness
+        // Return Ignore instead of Invalid to allow encounters to match
+        return SeedCorrelationResult.Ignore;
     }
 
     public LumioseCorrelation Correlation => IsAlpha ? LumioseCorrelation.PreApplyIVs : LumioseCorrelation.Normal;

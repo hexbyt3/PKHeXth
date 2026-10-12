@@ -307,6 +307,11 @@ public readonly record struct EncounterCriteria : IFixedNature, IFixedAbilityNum
         var dual = GetAbilityValueDual(ability, a);
         if (count == 2 || pi is not IPersonalAbility12H h) // prior to Gen5
             return dual;
+
+        // If ability is unspecified (-1), allow any ability including hidden
+        if (ability == -1)
+            return Any12H;
+
         if (ability == h.AbilityH)
             return dual == Any12 ? Any12H : OnlyHidden;
         return dual;

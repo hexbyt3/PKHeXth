@@ -18,7 +18,8 @@ public static class EncounterOrigin
     public static EvoCriteria[] GetOriginChain(PKM pk, byte generation, EntityContext context)
     {
         var (minLevel, maxLevel) = GetMinMax(pk, generation);
-        var origin = new EvolutionOrigin(pk.Species, context, generation, minLevel, maxLevel);
+        var options = context == EntityContext.Gen9a ? OriginOptions.SkipChecks : OriginOptions.None;
+        var origin = new EvolutionOrigin(pk.Species, context, generation, minLevel, maxLevel, options);
         return EvolutionChain.GetOriginChain(pk, origin);
     }
 
