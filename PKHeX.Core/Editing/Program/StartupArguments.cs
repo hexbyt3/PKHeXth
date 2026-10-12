@@ -42,11 +42,22 @@ public sealed class StartupArguments
             return;
 
         if (Entity is { } x)
+        {
             SAV = ReadSettingsDefinedPKM(startup, x) ?? GetBlank(x);
+        }
+        else if (Extra.OfType<DataMysteryGift>().FirstOrDefault(g => g.IsEntity) is { } gift)
+        {
+            SAV = ReadSettingsDefinedMG(startup, gift) ?? BlankSaveFile.Get(gift.Context);
+            Entity = gift.ConvertToPKM(SAV);
+        }
         else if (Extra.OfType<SAV3GCMemoryCard>().FirstOrDefault() is { } mc && SaveUtil.TryGetSaveFile(mc, out var mcSav))
+        {
             SAV = mcSav;
+        }
         else
+        {
             SAV = ReadSettingsAnyPKM(startup) ?? BlankSaveFile.Get(startup.DefaultSaveVersion, SAV);
+        }
     }
 
     // step 3
@@ -69,6 +80,13 @@ public sealed class StartupArguments
     {
         SaveFileLoadSetting.RecentBackup => SaveFinder.DetectSaveFiles(new CancellationTokenSource(TimeSpan.FromSeconds(5)).Token).FirstOrDefault(z => z.IsCompatiblePKM(pk)),
         SaveFileLoadSetting.LastLoaded => GetMostRecentlyLoaded(startup.RecentlyLoaded).FirstOrDefault(z => z.IsCompatiblePKM(pk)),
+        _ => null,
+    };
+
+    private static SaveFile? ReadSettingsDefinedMG(IStartupSettings startup, DataMysteryGift gift) => startup.AutoLoadSaveOnStartup switch
+    {
+        SaveFileLoadSetting.RecentBackup => SaveFinder.DetectSaveFiles(new CancellationTokenSource(TimeSpan.FromSeconds(5)).Token).FirstOrDefault(z => z.Context == gift.Context),
+        SaveFileLoadSetting.LastLoaded => GetMostRecentlyLoaded(startup.RecentlyLoaded).FirstOrDefault(z => z.Context == gift.Context),
         _ => null,
     };
 
