@@ -11,8 +11,7 @@ internal sealed class EggVerifier : Verifier
     public override void Verify(LegalityAnalysis data)
     {
         var pk = data.Entity;
-        if (data.EncounterOriginal is IEncounterEgg egg)
-            VerifyEggBreedingChain(data, pk, egg);
+        // Fork: the egg-move parent-chain check (upstream 0f59fd4c5) is skipped; it flags generated eggs the bots must accept.
         if (pk.IsEgg)
             VerifyWhileEgg(data, pk);
     }

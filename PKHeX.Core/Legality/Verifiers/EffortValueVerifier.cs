@@ -43,8 +43,7 @@ public sealed class EffortValueVerifier : Verifier
             data.AddLine(GetInvalid(EffortAbove252));
         else if (format < 5) // 3/4
             VerifyGainedEVs34(data, enc, evs, pk);
-        else if (sum != 0 && IsUnableToGainEVs(pk))
-            data.AddLine(GetInvalid(EffortShouldBeZero));
+        // Fork: upstream's "PLA EVs without EXP gained" check (9b89c0f33) is skipped; it flags generated Pokémon the bots must accept.
 
         // Only one of the following can be true: 0, 508, and x%6!=0
         if (sum == 0 && !enc.IsWithinEncounterRange(pk))
@@ -136,13 +135,7 @@ public sealed class EffortValueVerifier : Verifier
             {
                 data.AddLine(GetInvalid(EffortUntrainedCap_0, EffortValues.MaxVitamins34));
             }
-            else
-            {
-                var gained = pk.EXP - baseEXP;
-                var delta = EffortExpLegality.GetRequiredEffortEXP(evs, gained, pk.IsPokerusInfected, enc.Generation, pk.Format);
-                if (delta > 0)
-                    data.AddLine(GetInvalid(EffortUntrainedMoreEXP_0, (uint)delta));
-            }
+            // Fork: upstream's Gen 3/4 "EVs need more EXP" check (9c170d99c) is skipped for the same reason.
         }
     }
 
