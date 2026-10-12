@@ -28,7 +28,16 @@ public static class UpdateUtil
         if (second == -1)
             return null;
 
-        var tagString = responseJson.AsSpan()[first..second];
+        var tagString = responseJson[first..second];
+
+        // Normalize fork tag formats so System.Version can parse them.
+        // Strip a leading "v" if present (e.g. "v26.05.05") and convert
+        // the "-rev.N" revision suffix into a fourth version component
+        // (e.g. "26.05.05-rev.3" -> "26.05.05.3").
+        if (tagString.Length > 0 && (tagString[0] == 'v' || tagString[0] == 'V'))
+            tagString = tagString[1..];
+        tagString = tagString.Replace("-rev.", ".").Replace("-rev", ".");
+
         return !Version.TryParse(tagString, out var latestVersion) ? null : latestVersion;
     }
 }
