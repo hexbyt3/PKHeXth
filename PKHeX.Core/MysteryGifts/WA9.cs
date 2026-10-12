@@ -604,6 +604,13 @@ public sealed class WA9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
     {
         Span<int> finalIVs = stackalloc int[6];
         GetIVs(finalIVs);
+        // Flawless-count cards zero-fill the other IV bytes; treat them as random
+        // so the flawless IVs can land in any slot (same as GetParams).
+        if (FlawlessIVCount > 0)
+        {
+            for (int i = 1; i < finalIVs.Length; i++)
+                finalIVs[i] = 0xFF;
+        }
         var rng = Util.Rand;
         ApplyTemplateIVs(finalIVs, criteria, rng, _ => IsHOMEGift ? HomeBaseIV : rng.Next(32)); // HOME ZA-starters gifts have 20 in non-perfect IVs
         pk.SetIVs(finalIVs);
