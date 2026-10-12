@@ -53,6 +53,8 @@ public record struct EncounterEnumerator8(PKM Entity, EvoCriteria[] Chain, GameV
         StaticVersionSH,
         StaticShared,
 
+        GoEncounter,
+
         Fallback,
         End,
     }
@@ -199,6 +201,14 @@ public record struct EncounterEnumerator8(PKM Entity, EvoCriteria[] Chain, GameV
                     return true;
                 if (mustBeSlot)
                     goto case YieldState.Fallback; // already checked everything else
+                Index = 0; State = YieldState.GoEncounter; goto case YieldState.GoEncounter;
+
+            case YieldState.GoEncounter:
+                if (met == Locations.GO8)
+                {
+                    if (TryGetNextGO(EncountersGO.SlotsGO))
+                        return true;
+                }
                 Index = 0; goto case YieldState.SlotStart;
 
             case YieldState.Fallback:
@@ -290,5 +300,26 @@ public record struct EncounterEnumerator8(PKM Entity, EvoCriteria[] Chain, GameV
         Current = new MatchedEncounter<IEncounterable>(enc, rating);
         Yielded = true;
         return true;
+    }
+
+    private bool TryGetNextGO(EncounterArea8g[] areas)
+    {
+        for (; Index < areas.Length; Index++, SubIndex = 0)
+        {
+            var area = areas[Index];
+            // Check if any evolution matches the species/form
+            foreach (var evo in Chain)
+            {
+                if (area.Species != evo.Species)
+                    continue;
+                if (area.Form != evo.Form && !FormInfo.IsFormChangeable(area.Species, area.Form, evo.Form, EntityContext.Gen8, Entity.Context))
+                    continue;
+
+                if (TryGetNextSub(area.Slots))
+                    return true;
+                break;
+            }
+        }
+        return false;
     }
 }

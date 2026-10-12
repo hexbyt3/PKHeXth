@@ -48,6 +48,8 @@ public record struct EncounterPossible8(EvoCriteria[] Chain, EncounterTypeGroup 
         StaticVersionSH,
         StaticShared,
         NestSW, NestSH, DistSW, DistSH, DynamaxAdv, Crystal,
+
+        GoEncounter,
     }
 
     public bool MoveNext()
@@ -182,7 +184,14 @@ public record struct EncounterPossible8(EvoCriteria[] Chain, EncounterTypeGroup 
                     return true;
                 Index = 0; goto case YieldState.SlotEnd;
             case YieldState.SlotEnd:
-                break;
+                if (!Flags.HasFlag(EncounterTypeGroup.Slot))
+                    break;
+                State = YieldState.GoEncounter; goto case YieldState.GoEncounter;
+
+            case YieldState.GoEncounter:
+                if (TryGetNextGO(EncountersGO.SlotsGO))
+                    return true;
+                Index = 0; break;
         }
         return false;
     }
@@ -234,5 +243,26 @@ public record struct EncounterPossible8(EvoCriteria[] Chain, EncounterTypeGroup 
     {
         Current = match;
         return true;
+    }
+
+    private bool TryGetNextGO(EncounterArea8g[] areas)
+    {
+        for (; Index < areas.Length; Index++, SubIndex = 0)
+        {
+            var area = areas[Index];
+            // Check if any evolution matches the species/form
+            foreach (var evo in Chain)
+            {
+                if (area.Species != evo.Species)
+                    continue;
+                if (area.Form != evo.Form && !FormInfo.IsFormChangeable(area.Species, area.Form, evo.Form, EntityContext.Gen8, EntityContext.Gen8))
+                    continue;
+
+                if (TryGetNextSub(area.Slots))
+                    return true;
+                break;
+            }
+        }
+        return false;
     }
 }
