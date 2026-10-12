@@ -7,9 +7,8 @@ namespace PKHeX.Core;
 /// <inheritdoc cref="PogoSlotExtensions" />
 /// </summary>
 public sealed record EncounterSlot7GO(ushort DayStart, ushort DayEnd, ushort Species, byte Form, byte LevelMin, byte MinimumIV, Shiny Shiny, Gender Gender, PogoType Type, PogoFlags Flags)
-    : IEncounterable, IEncounterMatch, IPogoSlot, IEncounterConvertible<PB7>, IEncounterServerDate
+    : IEncounterable, IEncounterMatch, IPogoSlot, IEncounterConvertible<PB7>
 {
-    public bool IsDateRestricted => true;
     public byte Generation => 7;
     public EntityContext Context => EntityContext.Gen7b;
     public Ball FixedBall => Ball.None; // GO Park can override the ball; obey capture rules for LGP/E
@@ -141,18 +140,8 @@ public sealed record EncounterSlot7GO(ushort DayStart, ushort DayEnd, ushort Spe
         return true;
     }
 
-    public bool IsWithinDistributionWindow(PKM pk)
-    {
-        var date = new DateOnly(pk.MetYear + 2000, pk.MetMonth, pk.MetDay);
-        return IsWithinDistributionWindow(date);
-    }
-
-    public bool IsWithinDistributionWindow(DateOnly date) => this.IsWithinStartEnd(date);
-
     public EncounterMatchRating GetMatchRating(PKM pk)
     {
-        if (!IsWithinDistributionWindow(pk))
-            return EncounterMatchRating.DeferredErrors;
         if (!this.GetIVsValid(pk))
             return EncounterMatchRating.Deferred;
         return EncounterMatchRating.Match;

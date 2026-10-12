@@ -8,10 +8,9 @@ namespace PKHeX.Core;
 /// <inheritdoc cref="PogoSlotExtensions" />
 /// </summary>
 public sealed record EncounterSlot8GO(ushort DayStart, ushort DayEnd, ushort Species, byte Form, byte LevelMin, byte MinimumIV, Shiny Shiny, Gender Gender, PogoType Type, PogoBallRestriction BallRestrict, PogoImportFormat OriginFormat, PogoFlags Flags)
-    : IEncounterable, IEncounterMatch, IEncounterConvertible<PKM>, IPogoSlot, IFixedOTFriendship, IEncounterServerDate
+    : IEncounterable, IEncounterMatch, IEncounterConvertible<PKM>, IPogoSlot, IFixedOTFriendship
 {
     public byte Generation => 8;
-    public bool IsDateRestricted => true;
     public bool IsShiny => Shiny.IsShiny();
     public Ball FixedBall => BallRestrict.GetFixedBall();
     public bool IsEgg => false;
@@ -291,8 +290,6 @@ public sealed record EncounterSlot8GO(ushort DayStart, ushort DayEnd, ushort Spe
 
     private bool IsMatchPartial(PKM pk)
     {
-        if (!IsWithinDistributionWindow(pk))
-            return true;
         if (!this.GetIVsValid(pk))
             return true;
 
@@ -302,14 +299,6 @@ public sealed record EncounterSlot8GO(ushort DayStart, ushort DayEnd, ushort Spe
 
         return IsFormArgIncorrect(pk);
     }
-
-    public bool IsWithinDistributionWindow(PKM pk)
-    {
-        var date = new DateOnly(pk.MetYear + 2000, pk.MetMonth, pk.MetDay);
-        return IsWithinDistributionWindow(date);
-    }
-
-    public bool IsWithinDistributionWindow(DateOnly date) => this.IsWithinStartEnd(date);
 
     private bool IsFormArgIncorrect<T>(T pk) where T : ISpeciesForm => Species switch
     {

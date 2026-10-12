@@ -25,8 +25,6 @@ public static class EncounterServerDate
         WB8 wb8 => Result(wb8.IsWithinDistributionWindow(obtained)),
         WC9 wc9 => Result(wc9.IsWithinDistributionWindow(obtained)),
         WA9 wa9 => Result(wa9.IsWithinDistributionWindow(obtained)),
-        EncounterSlot7GO g7 => Result(g7.IsWithinDistributionWindow(obtained)),
-        EncounterSlot8GO g8 => Result(g8.IsWithinDistributionWindow(obtained)),
         _ => throw new ArgumentOutOfRangeException(nameof(enc)),
     };
 
