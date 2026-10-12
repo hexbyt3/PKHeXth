@@ -304,9 +304,7 @@ public abstract record EncounterStatic8Nest<T>(GameVersion Version)
                 return SeedCorrelationResult.Success;
         }
         seed = 0;
-        if (pk.IsShiny)
-            return SeedCorrelationResult.Ignore;
-        return SeedCorrelationResult.Invalid;
+        return SeedCorrelationResult.Ignore;
     }
 
     protected virtual bool IsMatchSeed(PKM pk, ulong seed) => Verify(pk, seed);
