@@ -134,7 +134,7 @@ public static class Legal
     internal const ushort MaxItemID_9_T2 = 2557; // Briar’s Book
     internal const ushort MaxAbilityID_9_T2 = (int)Ability.PoisonPuppeteer;
 
-    internal const int MaxSpeciesID_9a = MaxSpeciesID_9a_MD;
+    public const int MaxSpeciesID_9a = MaxSpeciesID_9a_MD;
     internal const int MaxMoveID_9a = MaxMoveID_9a_IK;
     internal const int MaxItemID_9a = MaxItemID_9a_MD;
     internal const int MaxAbilityID_9a = MaxAbilityID_9a_IK;

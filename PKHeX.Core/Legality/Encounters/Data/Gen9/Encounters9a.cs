@@ -3,12 +3,12 @@ using static PKHeX.Core.Shiny;
 
 namespace PKHeX.Core;
 
-internal static class Encounters9a
+public static class Encounters9a
 {
-    internal static readonly EncounterArea9a[] Slots = EncounterArea9a.GetAreas(Get16("za", "za"u8), SlotType9a.Standard);
-    internal static readonly EncounterArea9a[] Hyperspace = EncounterArea9a.GetAreas(Get16("hyperspace_za", "za"u8), SlotType9a.Hyperspace);
+    public static readonly EncounterArea9a[] Slots = EncounterArea9a.GetAreas(Get16("za", "za"u8), SlotType9a.Standard);
+    public static readonly EncounterArea9a[] Hyperspace = EncounterArea9a.GetAreas(Get16("hyperspace_za", "za"u8), SlotType9a.Hyperspace);
 
-    internal static readonly EncounterGift9a[] Gifts =
+    public static readonly EncounterGift9a[] Gifts =
     [
         // Z-A Starters
         new(0152,0,05,128) { Location = 30026, FlawlessIVCount = 3, Moves = new(033,039,000,000) }, // Chikorita (test_encount_init_poke_0)
@@ -60,7 +60,7 @@ internal static class Encounters9a
         #endregion
     ];
 
-    internal static readonly EncounterStatic9a[] Static =
+    public static readonly EncounterStatic9a[] Static =
     [
         // Legendary Pokémon
         new(0716,0,75,128) { Location = 00210, FlawlessIVCount = 3, Moves = new(224,585,532,601) }, // Xerneas (m10_x)
@@ -127,7 +127,7 @@ internal static class Encounters9a
 
     private const string tradeZA = "tradeza";
     private static readonly string[][] TradeNames = GetLanguageStrings(tradeZA, 11);
-    internal static readonly EncounterTrade9a[] Trades =
+    public static readonly EncounterTrade9a[] Trades =
     [
         new(TradeNames,0,0214,0,12) { ID32 = 797394, OTGender = 1, Gender = 0, Nature = Nature.Brave, IVs = new(31,31,15,31,15,15), Moves = new(033,043,203,042) }, // Heracross (sub_tradepoke_heracros)
         new(TradeNames,1,0447,0,25) { ID32 = 348226, OTGender = 0, Gender = 0, Nature = Nature.Rash,  IVs = new(15,31,15,31,31,15), Moves = new(418,098,249,197) }, // Riolu (sub_tradepoke_riolu)
