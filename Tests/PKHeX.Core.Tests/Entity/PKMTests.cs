@@ -171,3 +171,32 @@ public class EggMetDateTests
         pk.EggYear.Should().Be(5);
     }
 }
+
+public class SetShinyTests
+{
+    [Fact]
+    public void PastGenOriginStaysShinyUnderTheOldRule()
+    {
+        // A Gen 5 origin in a Gen 6+ format: xor 8-15 counts as shiny now but would have
+        // had its PID top bit flipped on transfer, so EC = PID must come with xor < 8.
+        var pk5 = new PK5 { Species = (int)Species.Pikachu, Version = GameVersion.B, TID16 = 3232, SID16 = 0, CurrentLevel = 50 };
+        var pk6 = pk5.ConvertToPK6();
+        for (int i = 0; i < 500; i++)
+        {
+            pk6.SetShiny();
+            pk6.ShinyXor.Should().BeLessThan(8);
+            pk6.EncryptionConstant.Should().Be(pk6.PID);
+        }
+    }
+
+    [Fact]
+    public void ModernOriginStillShiny()
+    {
+        var pk6 = new PK6 { Species = (int)Species.Pikachu, Version = GameVersion.X, TID16 = 3232, SID16 = 0, CurrentLevel = 50 };
+        for (int i = 0; i < 100; i++)
+        {
+            pk6.SetShiny();
+            pk6.IsShiny.Should().BeTrue();
+        }
+    }
+}
