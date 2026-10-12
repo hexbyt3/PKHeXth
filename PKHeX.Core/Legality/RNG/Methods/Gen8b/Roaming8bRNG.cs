@@ -34,7 +34,18 @@ public static class Roaming8bRNG
             if (TryApplyFromSeed(pk, criteria, shiny, flawless, seed))
                 return;
         } while (++ctr != maxAttempts);
-        TryApplyFromSeed(pk, EncounterCriteria.Unrestricted, shiny, flawless, rnd.Rand32());
+
+        // Fallback: relax IV criteria but keep shiny requirement; retry until a valid seed is found.
+        int fallback = 0;
+        while (!TryApplyFromSeed(pk, EncounterCriteria.Unrestricted, shiny, flawless, rnd.Rand32()))
+        {
+            if (++fallback >= maxAttempts)
+            {
+                // Last resort: drop shiny requirement too.
+                TryApplyFromSeed(pk, EncounterCriteria.Unrestricted, Shiny.FixedValue, flawless, rnd.Rand32());
+                break;
+            }
+        }
     }
 
     public static bool TryApplyFromSeed(PB8 pk, in EncounterCriteria criteria, Shiny shiny, int flawless, uint seed)
