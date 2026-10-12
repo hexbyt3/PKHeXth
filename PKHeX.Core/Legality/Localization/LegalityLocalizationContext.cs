@@ -42,6 +42,31 @@ public readonly ref struct LegalityLocalizationContext
     public string GetConsoleRegion3DS(int index) => GetSafe(Strings.console3ds, index);
     public string GetRibbonName(RibbonIndex index) => Strings.Ribbons.GetNameSafe($"Ribbon{index}", out var result) ? result : index.ToString();
     public string GetLanguageName(int index) => GetSafe(Strings.languageNames, index);
+    public string GetFormName(ushort species, byte form, EntityContext context) => FormConverter.GetStringFromForm(species, form, Strings, context);
+
+    private string GetEggBreedChainMessage(LegalityCheckResultCode _)
+    {
+        var pk = Analysis.Entity;
+        var enc = Analysis.EncounterOriginal;
+        Span<ushort> moves = stackalloc ushort[4];
+        if (enc.Generation >= 6)
+        {
+            pk.GetRelearnMoves(moves);
+        }
+        else
+        {
+            int ctr = 0;
+            // Only retain actual moves from egg source
+            for (int i = 0; i < moves.Length; i++)
+            {
+                if (!Analysis.Info.Moves[i].Info.Method.IsEggSource)
+                    continue;
+                moves[ctr++] = pk.GetMove(i);
+            }
+            moves = moves[..ctr];
+        }
+        return ChainBreedUtil.Summarize(Strings, enc.Species, enc.Form, enc.Version, moves).Message;
+    }
 
     private static string GetSafe(ReadOnlySpan<string> arr, int index)
     {
@@ -82,17 +107,17 @@ public readonly ref struct LegalityLocalizationContext
         var template = code.GetTemplate(Settings.Lines);
         if (code < FirstWithArgument)
             return template;
-        if (code.IsArgument())
+        if (code.IsArgument)
             return string.Format(template, chk.Argument);
-        if (code.IsArgument2())
+        if (code.IsArgument2)
             return string.Format(template, chk.Argument, chk.Argument2);
-        if (code.IsMove())
+        if (code.IsMove)
             return string.Format(template, GetMoveName(chk.Argument));
-        if (code.IsItem())
+        if (code.IsItem)
             return string.Format(template, GetItemName(chk.Argument));
-        if (code.IsLanguage())
+        if (code.IsLanguage)
             return string.Format(template, GetLanguageName(chk.Argument), GetLanguageName(Analysis.Entity.Language));
-        if (code.IsMemory())
+        if (code.IsMemory)
             return GetMemory(chk, template, code);
 
         // Complex codes may require additional context or arguments.
@@ -117,6 +142,7 @@ public readonly ref struct LegalityLocalizationContext
         < FirstComplex => format, // why are you even here?
         RibbonsInvalid_0 => string.Format(format, GetRibbonMessage(code)),
         RibbonsMissing_0 => string.Format(format, GetRibbonMessage(code)),
+        EggBreedChain_0 => string.Format(format, GetEggBreedChainMessage(code)),
         WordFilterFlaggedPattern_01 => string.Format(format, WordFilter.GetPattern((WordFilterType)chk.Argument, chk.Argument2), (WordFilterType)chk.Argument),
         WordFilterInvalidCharacter_0 => string.Format(format, chk.Argument, chk.Argument.ToString("X4")),
 
@@ -143,12 +169,12 @@ public readonly ref struct LegalityLocalizationContext
         >= MAX => throw new ArgumentOutOfRangeException(nameof(code), code, null),
     };
 
-    public string FormatMove(in MoveResult move, int index, byte currentFormat)
+    public string FormatMove(in MoveResult move, int index, EntityContext current)
     {
         var result = Format(move, index, Settings.Moves.FormatMove);
-        var gen = move.Generation;
-        if (currentFormat != gen && gen != 0)
-            result += $" [Gen{gen}]";
+        var original = move.Context;
+        if (current != original && original != 0)
+            result += $" [{original}]";
         return result;
     }
 

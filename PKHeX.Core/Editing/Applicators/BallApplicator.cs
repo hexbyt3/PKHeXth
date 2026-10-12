@@ -49,7 +49,7 @@ public static class BallApplicator
     {
         switch (enc)
         {
-            case EncounterSlot4 s4 when IsNincadaEvolveInOrigin(pk, s4):
+            case EncounterSlot4 { Type: SlotType4.BugContest } s4 when IsNincadaEvolveInOrigin(pk, s4):
                 ShedinjaEvolve4.CopyTo(result);
                 return ShedinjaEvolve4.Length;
             case EncounterSlot3 s3 when IsNincadaEvolveInOrigin(pk, s3):
@@ -75,7 +75,7 @@ public static class BallApplicator
         int ctr = 0;
         for (var b = BallMin; b <= BallMax; b++)
         {
-            if (BallVerifier.VerifyBall(enc, b, pk).IsValid())
+            if (BallVerifier.VerifyBall(enc, b, pk).IsValid)
                 result[ctr++] = b;
         }
         return ctr;

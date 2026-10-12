@@ -147,10 +147,10 @@ public abstract record EncounterStatic8Nest<T>(GameVersion Version)
 
         if (pk is IRibbonSetMark8 { HasMarkEncounter8: true })
             return false;
-        if (pk.Species == (int)Core.Species.Shedinja && pk is IRibbonSetAffixed x && ((RibbonIndex)x.AffixedRibbon).IsEncounterMark8())
+        if (pk.Species == (int)Core.Species.Shedinja && pk is IRibbonSetAffixed x && ((RibbonIndex)x.AffixedRibbon).IsEncounterMark8)
             return false;
 
-        if (!IsMatchEggLocation(pk))
+        if (!this.IsMatchEggLocation(pk))
             return false;
         if (!IsMatchLocation(pk))
             return false;
@@ -170,11 +170,6 @@ public abstract record EncounterStatic8Nest<T>(GameVersion Version)
     }
 
     protected virtual bool IsMatchLocation(PKM pk) => Location == pk.MetLocation;
-    private static bool IsMatchEggLocation(PKM pk)
-    {
-        var expect = pk is PB8 ? Locations.Default8bNone : 0;
-        return pk.EggLocation == expect;
-    }
 
     protected virtual bool IsMatchLevel(PKM pk) => pk.MetLevel == Level;
     private bool IsMatchGender(PKM pk) => Gender == FixedGenderUtil.GenderRandom || Gender == pk.Gender;
@@ -309,7 +304,9 @@ public abstract record EncounterStatic8Nest<T>(GameVersion Version)
                 return SeedCorrelationResult.Success;
         }
         seed = 0;
-        return SeedCorrelationResult.Ignore;
+        if (pk.IsShiny)
+            return SeedCorrelationResult.Ignore;
+        return SeedCorrelationResult.Invalid;
     }
 
     protected virtual bool IsMatchSeed(PKM pk, ulong seed) => Verify(pk, seed);

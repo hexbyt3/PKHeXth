@@ -27,7 +27,7 @@ public static class MethodCXD
             // * => IV, IV, ability, PID, PID
             var s = XDRNG.Next3(seed);
             uint pid = GetPID(s, id32, noShiny);
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
             if (criteria.IsSpecifiedGender() && !criteria.IsSatisfiedGender(EntityGender.GetFromPIDAndRatio(pid, gr)))
                 continue;
@@ -65,7 +65,7 @@ public static class MethodCXD
             // * => IV, IV, ability, PID, PID
             var s = XDRNG.Next3(seed);
             uint pid = GetPID(s, id32, noShiny);
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
             if (criteria.IsSpecifiedGender() && !criteria.IsSatisfiedGender(EntityGender.GetFromPIDAndRatio(pid, gr)))
                 continue;
@@ -122,7 +122,7 @@ public static class MethodCXD
                 pid = GetColoStarterPID(ref s, id32);
             }
 
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
             // fixed gender & never shiny, ignore
 
@@ -166,7 +166,7 @@ public static class MethodCXD
             var id32 = sid << 16 | tid;
 
             uint pid = GetColoStarterPID(ref s, id32);
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
             // fixed gender & never shiny, ignore
 
@@ -280,9 +280,11 @@ public static class MethodCXD
             var s = XDRNG.Next7(seed); // tid/sid (2), fake pid (2), ivs (2), ability (1)
 
             uint pid = GetPID(s);
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
             if (criteria.IsSpecifiedGender() && !criteria.IsSatisfiedGender(EntityGender.GetFromPID(pid, EntityGender.VM)))
+                continue;
+            if (criteria.Shiny.IsShiny() != ShinyUtil.GetIsShiny3(tid | ((uint)sid << 16), pid))
                 continue;
 
             var ivSeed = XDRNG.Next4(seed);
@@ -317,7 +319,7 @@ public static class MethodCXD
             var s = XDRNG.Next3(seed);
 
             uint pid = GetPID(s);
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
 
             var tid = XDRNG.Prev3(seed) >> 16;
@@ -357,7 +359,7 @@ public static class MethodCXD
             // Get PID
             seed = XDRNG.Next7(seed); // tid, sid, fakePID x2, IVs x2, ability* => pid1, pid2
             var pid = GetPIDRegular(ref seed);
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
             if (criteria.IsSpecifiedGender() && !criteria.IsSatisfiedGender(EntityGender.GetFromPID(pid, EntityGender.VM)))
                 continue;
@@ -405,7 +407,7 @@ public static class MethodCXD
         {
             // fakePID x2, IVs x2, ability, pid1*, pid2
             var pid = GetPIDReuse(ref seed, id32, noShiny);
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
             if (criteria.IsSpecifiedGender() && !criteria.IsSatisfiedGender(EntityGender.GetFromPIDAndRatio(pid, gender)))
                 continue;
@@ -449,7 +451,7 @@ public static class MethodCXD
         {
             // fakePID x2, IVs x2, ability, pid1*, pid2
             var pid = GetPIDReuse(ref seed, id32, noShiny);
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
             if (criteria.IsSpecifiedGender() && !criteria.IsSatisfiedGender(EntityGender.GetFromPIDAndRatio(pid, gender)))
                 continue;

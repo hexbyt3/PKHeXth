@@ -18,8 +18,10 @@ public sealed class SAV5B2W2 : SAV5, ISaveBlock5B2W2
     protected override SAV5B2W2 CloneInternal() => new(Data.ToArray());
     public override int MaxItemID => Legal.MaxItemID_5_B2W2;
 
+    public override PlayerBag5B2W2 Inventory => new(this);
+
     public override IReadOnlyList<BlockInfo> AllBlocks => Blocks.BlockInfo;
-    public override MyItem Items => Blocks.Items;
+    public override MyItem5B2W2 Items => Blocks.Items;
     public override Zukan5 Zukan => Blocks.Zukan;
     public override Misc5 Misc => Blocks.Misc;
     public override MysteryBlock5 Mystery => Blocks.Mystery;
@@ -46,16 +48,17 @@ public sealed class SAV5B2W2 : SAV5, ISaveBlock5B2W2
 
     public FestaBlock5 Festa => Blocks.Festa;
     public PWTBlock5 PWT => Blocks.PWT;
+    public JoinAvenue5 JoinAvenue => Blocks.JoinAvenue;
     public MedalList5 Medals => Blocks.Medals;
     public KeySystem5 Keys => Blocks.Keys;
 
-    public string Rival
+    public string RivalName
     {
-        get => GetString(RivalTrash);
-        set => SetString(RivalTrash, value, MaxStringLengthTrainer, StringConverterOption.ClearZero);
+        get => GetString(RivalNameTrash);
+        set => SetString(RivalNameTrash, value, MaxStringLengthTrainer, StringConverterOption.ClearZero);
     }
 
-    public Span<byte> RivalTrash
+    public Span<byte> RivalNameTrash
     {
         get => Data.Slice(0x23BA4, MaxStringLengthTrainer * 2);
         set { if (value.Length == MaxStringLengthTrainer * 2) value.CopyTo(Data[0x23BA4..]); }

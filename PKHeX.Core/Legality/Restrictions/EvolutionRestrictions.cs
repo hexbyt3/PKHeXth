@@ -10,17 +10,15 @@ namespace PKHeX.Core;
 /// <remarks>
 /// Currently only checks "is able to know a move required to level up".
 /// </remarks>
-public static class EvolutionRestrictions
+internal static class EvolutionRestrictions
 {
     /// <summary>
-    /// Gets the move required for a species to have evolved (if it's a move-based evolution).
+    /// List of species that evolve from a previous species having a move while leveling up
     /// </summary>
-    /// <param name="species">The evolved species</param>
-    /// <returns>The required move ID, EEVEE sentinel for Sylveon, or NONE if not a move evolution</returns>
     /// <remarks>
     /// Using moves with a counter stored in form argument is explicitly checked via other logic. <see cref="IsFormArgEvolution"/>
     /// </remarks>
-    public static ushort GetSpeciesEvolutionMove(ushort species) => species switch
+    private static ushort GetSpeciesEvolutionMove(ushort species) => species switch
     {
         (int)Sylveon => EEVEE,
         (int)MrMime => (int)Mimic,
@@ -43,32 +41,6 @@ public static class EvolutionRestrictions
         (int)Dudunsparce => (int)HyperDrill,
         (int)Hydrapple => (int)DragonCheer,
         _ => NONE,
-    };
-
-    /// <summary>
-    /// Gets the pre-evolution species and form that learns the required move for a move-based evolution.
-    /// </summary>
-    /// <param name="species">The evolved species</param>
-    /// <returns>Tuple of (preEvoSpecies, preEvoForm), or (0, 0) if not a move evolution</returns>
-    public static (ushort Species, byte Form) GetPreEvolutionForMoveEvolution(ushort species) => species switch
-    {
-        (int)Sylveon => ((ushort)Eevee, 0),
-        (int)MrMime => ((ushort)MimeJr, 0),
-        (int)Sudowoodo => ((ushort)Bonsly, 0),
-        (int)Ambipom => ((ushort)Aipom, 0),
-        (int)Lickilicky => ((ushort)Lickitung, 0),
-        (int)Tangrowth => ((ushort)Tangela, 0),
-        (int)Yanmega => ((ushort)Yanma, 0),
-        (int)Mamoswine => ((ushort)Piloswine, 0),
-        (int)Tsareena => ((ushort)Steenee, 0),
-        (int)Grapploct => ((ushort)Clobbopus, 0),
-        (int)Wyrdeer => ((ushort)Stantler, 0),
-        (int)Overqwil => ((ushort)Qwilfish, 1), // Hisuian form
-        (int)Annihilape => ((ushort)Primeape, 0),
-        (int)Farigiraf => ((ushort)Girafarig, 0),
-        (int)Dudunsparce => ((ushort)Dunsparce, 0),
-        (int)Hydrapple => ((ushort)Dipplin, 0),
-        _ => (0, 0),
     };
 
     /// <summary>
@@ -103,8 +75,8 @@ public static class EvolutionRestrictions
         return species is (int)Runerigus or (int)Wyrdeer or (int)Annihilape or (int)Basculegion or (int)Kingambit or (int)Overqwil;
     }
 
-    public const ushort NONE = 0;
-    public const ushort EEVEE = ushort.MaxValue;
+    private const ushort NONE = 0;
+    private const ushort EEVEE = ushort.MaxValue;
 
     private static ReadOnlySpan<ushort> EeveeFairyMoves =>
     [
@@ -199,14 +171,11 @@ public static class EvolutionRestrictions
 
     private static bool WasMoveInRelearn(PKM pk, LegalInfo info, ushort move)
     {
-        for (var i = 0; i < info.Moves.Length; i++)
-        {
-            if (pk.GetMove(i) != move)
-                continue;
-            var method = info.Moves[i].Info.Method;
-            return method.IsEggSource() || method.IsRelearn() || method is LearnMethod.Encounter;
-        }
-        return false;
+        var i = pk.GetMoveIndex(move);
+        if (i == -1)
+            return false;
+        var method = info.Moves[i].Info.Method;
+        return method is { IsEggSource: true } or { IsRelearn: true } or LearnMethod.Encounter;
     }
 
     private static bool IsValidEvolutionWithMoveAny(IEncounterTemplate enc, ReadOnlySpan<ushort> any, EvolutionHistory history, PKM pk, ILearnGroup head)
@@ -226,7 +195,7 @@ public static class EvolutionRestrictions
         // If any move is not an egg source, then a slot could have been forgotten.
         foreach (var move in moves)
         {
-            if (!move.Info.Method.IsEggSource())
+            if (!move.Info.Method.IsEggSource)
                 return true;
         }
         return false;

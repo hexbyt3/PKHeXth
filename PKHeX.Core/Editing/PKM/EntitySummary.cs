@@ -19,7 +19,7 @@ public class EntitySummary : IFatefulEncounterReadOnly // do NOT seal, allow inh
     public virtual string Position => "???";
     public string Nickname => Entity.Nickname;
     public string Species => Get(Strings.specieslist, Entity.Species);
-    public string Nature => Get(Strings.natures, (byte)Entity.StatNature);
+    public string Nature => Get(Strings.natures, (byte)Entity.StatAlignment);
     public string Gender => Get(GenderSymbols, Entity.Gender);
     public string ESV => Entity.PSV.ToString("0000");
     public string HP_Type => GetSpan(Strings.HiddenPowerTypes, Entity.HPType);
@@ -100,7 +100,13 @@ public class EntitySummary : IFatefulEncounterReadOnly // do NOT seal, allow inh
     public string Relearn2 => Get(Strings.movelist, Entity.RelearnMove2);
     public string Relearn3 => Get(Strings.movelist, Entity.RelearnMove3);
     public string Relearn4 => Get(Strings.movelist, Entity.RelearnMove4);
-    public ushort Checksum => Entity is ISanityChecksum s ? s.Checksum : Checksums.CRC16_CCITT(Entity.Data[Entity.SIZE_STORED..]);
+    public ushort Checksum => Entity switch
+    {
+        ISanityChecksum s => s.Checksum,
+        PK1 gb => gb.GetSingleListChecksum(),
+        PK2 gb => gb.GetSingleListChecksum(),
+        _ => Checksums.CRC16_CCITT(Entity.Data[..Entity.SIZE_STORED]),
+    };
     public int Friendship => Entity.OriginalTrainerFriendship;
     public int EggYear => Entity.EggMetDate.GetValueOrDefault().Year;
     public int EggMonth => Entity.EggMetDate.GetValueOrDefault().Month;

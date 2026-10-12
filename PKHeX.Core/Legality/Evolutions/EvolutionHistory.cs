@@ -139,45 +139,21 @@ public sealed class EvolutionHistory
         return -1;
     }
 
-    /// <summary>
-    /// Checks if the entity has visited any game context other than the specified one(s).
-    /// </summary>
-    public bool HasVisitedExcept(EntityContext context)
+    public bool HasVisitedExcept(params ReadOnlySpan<EntityContext> context)
     {
-        if (HasVisitedZA   && context != EntityContext.Gen9a) return true;
-        if (HasVisitedGen9 && context != EntityContext.Gen9)  return true;
-        if (HasVisitedBDSP && context != EntityContext.Gen8a) return true;
-        if (HasVisitedPLA  && context != EntityContext.Gen8b) return true;
-        if (HasVisitedSWSH && context != EntityContext.Gen8)  return true;
-        if (HasVisitedLGPE && context != EntityContext.Gen7b) return true;
-        if (HasVisitedGen7 && context != EntityContext.Gen7)  return true;
-        if (HasVisitedGen6 && context != EntityContext.Gen6)  return true;
-        if (HasVisitedGen5 && context != EntityContext.Gen5)  return true;
-        if (HasVisitedGen4 && context != EntityContext.Gen4)  return true;
-        if (HasVisitedGen3 && context != EntityContext.Gen3)  return true;
-        if (HasVisitedGen2 && context != EntityContext.Gen2)  return true;
-        if (HasVisitedGen1 && context != EntityContext.Gen1)  return true;
-        return false;
-    }
-
-    /// <summary>
-    /// Checks if the entity has visited any game context other than the specified ones.
-    /// </summary>
-    public bool HasVisitedExcept(EntityContext ctx0, EntityContext ctx1)
-    {
-        if (HasVisitedZA   && ctx0 != EntityContext.Gen9a && ctx1 != EntityContext.Gen9a) return true;
-        if (HasVisitedGen9 && ctx0 != EntityContext.Gen9  && ctx1 != EntityContext.Gen9)  return true;
-        if (HasVisitedBDSP && ctx0 != EntityContext.Gen8a && ctx1 != EntityContext.Gen8a) return true;
-        if (HasVisitedPLA  && ctx0 != EntityContext.Gen8b && ctx1 != EntityContext.Gen8b) return true;
-        if (HasVisitedSWSH && ctx0 != EntityContext.Gen8  && ctx1 != EntityContext.Gen8)  return true;
-        if (HasVisitedLGPE && ctx0 != EntityContext.Gen7b && ctx1 != EntityContext.Gen7b) return true;
-        if (HasVisitedGen7 && ctx0 != EntityContext.Gen7  && ctx1 != EntityContext.Gen7)  return true;
-        if (HasVisitedGen6 && ctx0 != EntityContext.Gen6  && ctx1 != EntityContext.Gen6)  return true;
-        if (HasVisitedGen5 && ctx0 != EntityContext.Gen5  && ctx1 != EntityContext.Gen5)  return true;
-        if (HasVisitedGen4 && ctx0 != EntityContext.Gen4  && ctx1 != EntityContext.Gen4)  return true;
-        if (HasVisitedGen3 && ctx0 != EntityContext.Gen3  && ctx1 != EntityContext.Gen3)  return true;
-        if (HasVisitedGen2 && ctx0 != EntityContext.Gen2  && ctx1 != EntityContext.Gen2)  return true;
-        if (HasVisitedGen1 && ctx0 != EntityContext.Gen1  && ctx1 != EntityContext.Gen1)  return true;
+        if (HasVisitedZA   && !context.Contains(EntityContext.Gen9a)) return true;
+        if (HasVisitedGen9 && !context.Contains(EntityContext.Gen9))  return true;
+        if (HasVisitedBDSP && !context.Contains(EntityContext.Gen8a)) return true;
+        if (HasVisitedPLA  && !context.Contains(EntityContext.Gen8b)) return true;
+        if (HasVisitedSWSH && !context.Contains(EntityContext.Gen8))  return true;
+        if (HasVisitedLGPE && !context.Contains(EntityContext.Gen7b)) return true;
+        if (HasVisitedGen7 && !context.Contains(EntityContext.Gen7))  return true;
+        if (HasVisitedGen6 && !context.Contains(EntityContext.Gen6))  return true;
+        if (HasVisitedGen5 && !context.Contains(EntityContext.Gen5))  return true;
+        if (HasVisitedGen4 && !context.Contains(EntityContext.Gen4))  return true;
+        if (HasVisitedGen3 && !context.Contains(EntityContext.Gen3))  return true;
+        if (HasVisitedGen2 && !context.Contains(EntityContext.Gen2))  return true;
+        if (HasVisitedGen1 && !context.Contains(EntityContext.Gen1))  return true;
         return false;
     }
 }

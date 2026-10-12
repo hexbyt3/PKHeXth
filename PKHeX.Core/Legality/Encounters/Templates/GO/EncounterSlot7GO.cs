@@ -7,15 +7,16 @@ namespace PKHeX.Core;
 /// <inheritdoc cref="PogoSlotExtensions" />
 /// </summary>
 public sealed record EncounterSlot7GO(ushort DayStart, ushort DayEnd, ushort Species, byte Form, byte LevelMin, byte MinimumIV, Shiny Shiny, Gender Gender, PogoType Type, PogoFlags Flags)
-    : IEncounterable, IEncounterMatch, IPogoSlot, IEncounterConvertible<PB7>
+    : IEncounterable, IEncounterMatch, IPogoSlot, IEncounterConvertible<PB7>, IEncounterServerDate
 {
+    public bool IsDateRestricted => true;
     public byte Generation => 7;
     public EntityContext Context => EntityContext.Gen7b;
     public Ball FixedBall => Ball.None; // GO Park can override the ball; obey capture rules for LGP/E
     public bool IsEgg => false;
     public AbilityPermission Ability => AbilityPermission.Any12;
     public bool IsShiny => Shiny.IsShiny();
-    public ushort EggLocation => 0;
+    ushort ILocation.EggLocation => 0;
 
     public GameVersion Version => GameVersion.GO;
     public ushort Location => Locations.GO7;
@@ -90,7 +91,7 @@ public sealed record EncounterSlot7GO(ushort DayStart, ushort DayEnd, ushort Spe
         var ability = criteria.GetAbilityFromNumber(Ability);
 
         criteria.SetRandomIVsGO(pk, MinimumIV);
-        pk.Nature = pk.StatNature = nature;
+        pk.Nature = pk.StatAlignment = nature;
         pk.Gender = gender;
         pk.RefreshAbility(ability);
 
@@ -140,8 +141,18 @@ public sealed record EncounterSlot7GO(ushort DayStart, ushort DayEnd, ushort Spe
         return true;
     }
 
+    public bool IsWithinDistributionWindow(PKM pk)
+    {
+        var date = new DateOnly(pk.MetYear + 2000, pk.MetMonth, pk.MetDay);
+        return IsWithinDistributionWindow(date);
+    }
+
+    public bool IsWithinDistributionWindow(DateOnly date) => this.IsWithinStartEnd(date);
+
     public EncounterMatchRating GetMatchRating(PKM pk)
     {
+        if (!IsWithinDistributionWindow(pk))
+            return EncounterMatchRating.DeferredErrors;
         if (!this.GetIVsValid(pk))
             return EncounterMatchRating.Deferred;
         return EncounterMatchRating.Match;

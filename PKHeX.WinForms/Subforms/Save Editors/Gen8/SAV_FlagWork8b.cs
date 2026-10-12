@@ -63,14 +63,10 @@ public sealed partial class SAV_FlagWork8b : Form
         TLP_Flags.Controls.Clear();
         IEnumerable<NamedEventValue> labels = editor.Flag;
 
-        var hide = Main.Settings.Advanced.HideEventTypeBelow;
         labels = labels.OrderByDescending(z => z.Type);
         int i = 0;
         foreach (var (name, index, type) in labels)
         {
-            if (type < hide)
-                break;
-
             var lbl = new Label { Text = name, Margin = Padding.Empty, AutoSize = true };
             var chk = new CheckBox
             {
@@ -103,14 +99,10 @@ public sealed partial class SAV_FlagWork8b : Form
         TLP_System.Controls.Clear();
         IEnumerable<NamedEventValue> labels = editor.System;
 
-        var hide = Main.Settings.Advanced.HideEventTypeBelow;
         labels = labels.OrderByDescending(z => z.Type);
         int i = 0;
         foreach (var (name, index, type) in labels)
         {
-            if (type < hide)
-                break;
-
             var lbl = new Label { Text = name, Margin = Padding.Empty, AutoSize = true };
             var chk = new CheckBox
             {
@@ -142,13 +134,10 @@ public sealed partial class SAV_FlagWork8b : Form
         TLP_Work.Scroll += WinFormsUtil.PanelScroll;
         TLP_Work.Controls.Clear();
         IEnumerable<NamedEventWork> labels = editor.Work;
-        var hide = Main.Settings.Advanced.HideEventTypeBelow;
         labels = labels.OrderByDescending(z => z.Type);
         int i = 0;
         foreach (var entry in labels)
         {
-            if (entry.Type < hide)
-                break;
             var lbl = new Label { Text = entry.Name, Margin = Padding.Empty, AutoSize = true };
             var mtb = new NumericUpDown
             {

@@ -13,14 +13,14 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
     GameVersion IVersion.Version => GameVersion.ZA;
     public EntityContext Context => EntityContext.Gen9a;
     public bool IsEgg => false;
-    public AbilityPermission Ability => AbilityPermission.Any12H;
+    public AbilityPermission Ability => AbilityPermission.Any12;
     public Ball FixedBall => Ball.Poke;
     public Shiny Shiny { get; init; } = Shiny.Never;
     public bool IsShiny => false;
-    public ushort EggLocation => 0;
+    ushort ILocation.EggLocation => 0;
     public byte FlawlessIVCount { get; init; }
-    public const byte NoScale = 0;
-    public bool NoScalarsDefined => Size == NoScale;
+    private const byte NoScale = 0;
+    private bool NoScalarsDefined => Size == NoScale;
     public Moveset Moves { get; init; }
     public IndividualValueSet IVs { get; init; }
     public Nature Nature { get; init; } = Nature.Random;
@@ -124,7 +124,7 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
     private void SetMoves(PA9 pk, PersonalInfo9ZA pi, byte level)
     {
         var (learn, plus) = LearnSource9ZA.GetLearnsetAndPlus(Species, Form);
-        PlusRecordApplicator.SetPlusFlagsEncounter(pk, pi, plus, level);
+        pk.SetPlusFlagsEncounter(pi, plus, level);
         if (Moves.HasMoves)
         {
             pk.SetMoves(Moves);
@@ -134,7 +134,7 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
         Span<ushort> moves = stackalloc ushort[4];
         learn.SetEncounterMovesBackwards(level, moves, sameDescend: false);
         if (pk.IsAlpha)
-            PlusRecordApplicator.SetPlusFlagsSpecific(pk, pi, moves[0] = pi.AlphaMove);
+            pk.SetPlusFlagsSpecific(pi, moves[0] = pi.AlphaMove);
         pk.SetMoves(moves);
     }
 
@@ -148,7 +148,7 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
             return false;
         if (Gender != FixedGenderUtil.GenderRandom && pk.Gender != Gender)
             return false;
-        if (!IsMatchEggLocation(pk))
+        if (!this.IsMatchEggLocation(pk))
             return false;
         if (!IsMatchLocation(pk))
             return false;
@@ -158,7 +158,7 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
             return false;
         if (FlawlessIVCount != 0 && pk.FlawlessIVCount < FlawlessIVCount)
             return false;
-        if (Nature.IsFixed() && pk.Nature != Nature)
+        if (Nature.IsFixed && pk.Nature != Nature)
             return false;
         if (pk is IAlphaReadOnly a && a.IsAlpha != IsAlpha)
             return false;
@@ -168,7 +168,6 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
         return true;
     }
 
-    private bool IsMatchEggLocation(PKM pk) => pk.EggLocation == EggLocation;
     private bool IsMatchLocation(PKM pk) => pk.MetLocation == Location;
 
     public EncounterMatchRating GetMatchRating(PKM pk)
@@ -184,7 +183,7 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
             return EncounterMatchRating.DeferredErrors;
 
         var pidiv = TryGetSeed(pk, out _);
-        if (pidiv is SeedCorrelationResult.Invalid) // Only reject Invalid, allow Ignore
+        if (pidiv != SeedCorrelationResult.Success)
             return EncounterMatchRating.DeferredErrors;
 
         return EncounterMatchRating.Match;
@@ -213,9 +212,7 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
             return SeedCorrelationResult.Success;
         if (pk.IsShiny && !LumioseSolver.SearchShiny1)
             return SeedCorrelationResult.Ignore;
-        // For PLZA, seed correlation is unreliable due to cryptographic RNG and ability randomness
-        // Return Ignore instead of Invalid to allow encounters to match
-        return SeedCorrelationResult.Ignore;
+        return SeedCorrelationResult.Invalid;
     }
 
     public LumioseCorrelation Correlation => IsAlpha ? LumioseCorrelation.PreApplyIVs : IVs.IsSpecified || FlawlessIVCount != 0 ? LumioseCorrelation.ReApplyIVs : LumioseCorrelation.Normal;
@@ -245,7 +242,7 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
         return true;
     }
 
-    public static uint GetFixedTrainerID32(TrainerGift9a trainer) => trainer switch
+    private static uint GetFixedTrainerID32(TrainerGift9a trainer) => trainer switch
     {
         TrainerGift9a.Lucario => 912562,
         TrainerGift9a.Floette => 1,
@@ -255,7 +252,7 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
         _ => throw new ArgumentOutOfRangeException(nameof(trainer), trainer, null),
     };
 
-    public static byte GetFixedTrainerGender(TrainerGift9a trainer) => trainer switch
+    private static byte GetFixedTrainerGender(TrainerGift9a trainer) => trainer switch
     {
         TrainerGift9a.Lucario => 1,
         TrainerGift9a.Floette => 0,
@@ -265,7 +262,7 @@ public sealed record EncounterGift9a(ushort Species, byte Form, byte Level, byte
         _ => throw new ArgumentOutOfRangeException(nameof(trainer), trainer, null),
     };
 
-    public static string GetFixedTrainerName(TrainerGift9a trainer, int language) => trainer switch
+    private static string GetFixedTrainerName(TrainerGift9a trainer, int language) => trainer switch
     {
         TrainerGift9a.Lucario => language switch
         {

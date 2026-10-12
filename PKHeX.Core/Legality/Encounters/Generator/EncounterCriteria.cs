@@ -112,7 +112,7 @@ public readonly record struct EncounterCriteria : IFixedNature, IFixedAbilityNum
     /// Determines whether a specific Nature is specified in the criteria or if complex nature mutations are allowed.
     /// </summary>
     /// <returns>><see langword="true"/> if a Nature is specified or complex nature mutations are allowed; otherwise, <see langword="false"/>.</returns>
-    public bool IsSpecifiedNature() => Nature.IsFixed() || Mutations.IsComplexNature();
+    public bool IsSpecifiedNature() => Nature.IsFixed || Mutations.IsComplexNature();
 
     /// <summary>
     /// Determines whether a level range is specified in the criteria.
@@ -155,10 +155,10 @@ public readonly record struct EncounterCriteria : IFixedNature, IFixedAbilityNum
                                 || IV_SPE != RandomIV;
 
     /// <summary>
-    /// Determines whether the number of specified IVs is at least the given count.
+    /// Determines whether the number of specified IVs is at most the given count.
     /// </summary>
-    /// <param name="count">The minimum number of specified IVs to check for.</param>
-    /// <returns>><see langword="true"/> if the number of specified IVs is at least <paramref name="count"/>; otherwise, <see langword="false"/>.</returns>
+    /// <param name="count">The maximum number of specified IVs to check for.</param>
+    /// <returns>><see langword="true"/> if the number of specified IVs is at most <paramref name="count"/>; otherwise, <see langword="false"/>.</returns>
     public bool IsSpecifiedIVs(int count) => GetCountSpecifiedIVs() <= count;
 
     /// <summary>
@@ -211,10 +211,24 @@ public readonly record struct EncounterCriteria : IFixedNature, IFixedAbilityNum
     public bool IsSatisfiedNature(Nature nature)
     {
         if (Mutations.HasFlag(AllowOnlyNeutralNature))
-            return nature.IsNeutral();
+            return nature.IsNeutral;
         if (Nature == Nature.Random)
             return true;
         return nature == Nature || Mutations.HasFlag(CanMintNature);
+    }
+
+    /// <summary>
+    /// Determines whether the Generation 3/4 PID satisfies the Nature criteria.
+    /// </summary>
+    /// <param name="pid">The original PID to check.</param>
+    /// <returns><see langword="true"/> if the Nature satisfies the criteria; otherwise, <see langword="false"/>.</returns>
+    public bool IsSatisfiedNature(uint pid)
+    {
+        if (Mutations.HasFlag(AllowOnlyNeutralNature))
+            return ((Nature)(pid % 25)).IsNeutral;
+        if (Nature == Nature.Random)
+            return true;
+        return Mutations.HasFlag(CanMintNature) || ((Nature)(pid % 25)) == Nature;
     }
 
     /// <summary>
@@ -293,11 +307,6 @@ public readonly record struct EncounterCriteria : IFixedNature, IFixedAbilityNum
         var dual = GetAbilityValueDual(ability, a);
         if (count == 2 || pi is not IPersonalAbility12H h) // prior to Gen5
             return dual;
-
-        // If ability is unspecified (-1), allow any ability including hidden
-        if (ability == -1)
-            return Any12H;
-
         if (ability == h.AbilityH)
             return dual == Any12 ? Any12H : OnlyHidden;
         return dual;
@@ -325,7 +334,7 @@ public readonly record struct EncounterCriteria : IFixedNature, IFixedAbilityNum
     /// </summary>
     public Nature GetNature()
     {
-        if (Nature.IsFixed())
+        if (Nature.IsFixed)
             return Nature;
         var result = (Nature)Util.Rand.Next(25);
         if (Mutations.HasFlag(AllowOnlyNeutralNature))
@@ -336,7 +345,6 @@ public readonly record struct EncounterCriteria : IFixedNature, IFixedAbilityNum
     /// <summary>
     /// Indicates if the <see cref="Form"/> is specified.
     /// </summary>
-    /// <returns></returns>
     public bool IsSpecifiedForm() => Form != -1;
 
     /// <summary>
@@ -533,6 +541,7 @@ public readonly record struct EncounterCriteria : IFixedNature, IFixedAbilityNum
     /// <summary>
     /// Gets the combined IVs as a single 32-bit integer, where each IV is packed into 5 bits.
     /// </summary>
+    /// <remarks>Little endian format (HP occupies the lowest bits)</remarks>
     public uint GetCombinedIVs() => (byte)IV_HP
                                   | (uint)IV_ATK << 5
                                   | (uint)IV_DEF << 10

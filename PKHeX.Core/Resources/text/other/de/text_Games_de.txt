@@ -5,15 +5,15 @@ Smaragd
 Feuerrot
 Blattgrün
 
-HeartGold
-SoulSilver
+Goldene HeartGold
+Silberne SoulSilver
 
 Diamant
 Perl
 Platin
 
 
-Kolosseum/XD
+Colosseum/XD
 Battle Revolution
 
 
@@ -37,8 +37,8 @@ Rot
 Blau [INT]/Grün [JP]
 Blau [JP]
 Gelb
-Gold
-Silber
+Goldene
+Silberne
 Kristall
 Let's Go, Pikachu!
 Let's Go, Evoli!

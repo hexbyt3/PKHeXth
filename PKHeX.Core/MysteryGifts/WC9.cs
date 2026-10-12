@@ -226,7 +226,7 @@ public sealed class WC9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
         {
             foreach (var value in RibbonSpan)
             {
-                if (((RibbonIndex)value).IsEncounterMark8())
+                if (((RibbonIndex)value).IsEncounterMark8)
                     return true;
             }
             return false;
@@ -239,7 +239,7 @@ public sealed class WC9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
         {
             foreach (var value in RibbonSpan)
             {
-                if (((RibbonIndex)value).IsEncounterMark9())
+                if (((RibbonIndex)value).IsEncounterMark9)
                     return true;
             }
             return false;
@@ -427,9 +427,7 @@ public sealed class WC9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
 
     public override GameVersion Version => OriginGame != 0 ? (GameVersion)OriginGame : GameVersion.SV;
 
-    public override PK9 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria) => ConvertToPKM(tr, criteria, null);
-
-    public override PK9 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria, DateOnly? metDateOverride)
+    public override PK9 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria)
     {
         if (!IsEntity)
             throw new ArgumentException(nameof(IsEntity));
@@ -502,7 +500,7 @@ public sealed class WC9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
             while (!CanBeReceivedByVersion(pk));
         }
 
-        var date = metDateOverride ?? GetSuggestedDate();
+        var date = GetSuggestedDate();
         pk.MetDate = date;
 
         if (OTGender >= 2)
@@ -572,7 +570,7 @@ public sealed class WC9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
     private void SetPINGA(PK9 pk, in EncounterCriteria criteria)
     {
         var pi = pk.PersonalInfo;
-        pk.Nature = pk.StatNature = criteria.GetNature((sbyte)Nature == -1 ? Nature.Random : Nature);
+        pk.Nature = pk.StatAlignment = criteria.GetNature((sbyte)Nature == -1 ? Nature.Random : Nature);
         pk.Gender = criteria.GetGender(Gender, pi);
         var av = GetAbilityIndex(criteria);
         pk.RefreshAbility(av);
@@ -696,7 +694,7 @@ public sealed class WC9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
         else
         {
             if (!shinyType.IsValid(pk)) return false;
-            if (!IsMatchEggLocation(pk)) return false;
+            if (!IsMatchEggLocationInternal(pk)) return false;
             if (!IsMatchLocation(pk)) return false;
         }
 
@@ -940,7 +938,7 @@ public sealed class WC9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
         foreach (var value in RibbonSpan)
         {
             missing = (RibbonIndex)value;
-            if (!missing.IsEncounterMark8())
+            if (!missing.IsEncounterMark8)
                 continue;
             if (pk is IRibbonSetMark8 m8 && !m8.HasMark8(missing))
                 return true;

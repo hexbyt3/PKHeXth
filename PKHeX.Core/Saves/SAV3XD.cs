@@ -1,6 +1,5 @@
 using System;
 using System.Buffers;
-using System.Collections.Generic;
 using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace PKHeX.Core;
@@ -8,9 +7,18 @@ namespace PKHeX.Core;
 /// <summary>
 /// Generation 3 <see cref="SaveFile"/> object for Pokémon XD saves.
 /// </summary>
-public sealed class SAV3XD : SaveFile, IGCSaveFile, IBoxDetailName, IDaycareStorage, IDaycareExperience, IGCRegion
+public sealed class SAV3XD : SaveFile, IGCSaveFile, IBoxDetailName, IDaycareStorage, IDaycareExperience, IGCRegion, ISaveFileRevision, IGiftRibbons
 {
     protected internal override string ShortSummary => $"{OT} ({Version}) {PlayTimeString}";
+    public int SaveRevision => 0;
+    public string SaveRevisionString => OriginalRegion switch
+    {
+        GCRegion.NTSC_J => "-J",
+        GCRegion.NTSC_U => "-U",
+        GCRegion.PAL => "-PAL",
+        _ => "-?",
+    };
+
     public override string Extension => this.GCExtension();
     public SAV3GCMemoryCard? MemoryCard { get; init; }
 
@@ -23,25 +31,34 @@ public sealed class SAV3XD : SaveFile, IGCSaveFile, IBoxDetailName, IDaycareStor
     private readonly StrategyMemo StrategyMemo;
     private readonly ShadowInfoTableXD ShadowInfo;
     public int MaxShadowID => ShadowInfo.Count;
-    private int OFS_PouchHeldItem, OFS_PouchKeyItem, OFS_PouchBalls, OFS_PouchTMHM, OFS_PouchBerry, OFS_PouchCologne, OFS_PouchDisc;
+    public int OFS_Pouch;
     private readonly int[] subOffsets = new int[16];
     private readonly Memory<byte> Container;
     private int DaycareOffset;
+    private int GiftRibbonsOffset;
 
     public SAV3XD(bool japanese = false) : base(SaveUtil.SIZE_G3XD)
     {
         Container = Memory<byte>.Empty;
         CurrentRegion = OriginalRegion = japanese ? GCRegion.NTSC_J : GCRegion.NTSC_U;
-        // create fake objects
+
+        // create fake objects, all sub-blocks in order aligned to 0x10
+        //Span<ushort> subLength = [0x88, 0x978, 0xBC50, 0x4A, 0xCC, 0x1774, 0x364, 0x2400, 0x6B4, 0xB, 0x400, 0x800, 0x1000, 0x2000, 0x2298, 0xC800];
+        subOffsets = [0x0, 0x90, 0xA10, 0xC660, 0xC6B0, 0xC780, 0xDF00, 0xE270, 0x10670, 0x10D30, 0x10D40, 0x11140, 0x11940, 0x12940, 0x14940, 0x16BE0]; // 0x233E0
+
+        Config = subOffsets[0] + 0xA8;
+        Trainer1 = subOffsets[1] + 0xA8;
+        Party = Trainer1 + 0x30;
+        Box = subOffsets[2] + 0xA8;
+        DaycareOffset = subOffsets[4] + 0xA8;
+        Memo = subOffsets[5] + 0xA8;
+        Shadow = subOffsets[7] + 0xA8;
+        GiftRibbonsOffset = subOffsets[9] + 0xA8;
+        // Purifier = subOffsets[14] + 0xA8;
+
         StrategyMemo = new StrategyMemo();
         ShadowInfo = new ShadowInfoTableXD(japanese);
-        Config = 0xA8;
-        Trainer1 = 0xCCD8;
-        Party = 0xCD08;
-        Box = 0x10E08;
-        DaycareOffset = 0x1CA68;
-        Memo = 0xF678;
-        Shadow = 0x1CB48;
+
         Initialize();
         ClearBoxes();
     }
@@ -80,6 +97,7 @@ public sealed class SAV3XD : SaveFile, IGCSaveFile, IBoxDetailName, IDaycareStor
         DaycareOffset = subOffsets[4] + 0xA8;
         Memo = subOffsets[5] + 0xA8;
         Shadow = subOffsets[7] + 0xA8;
+        GiftRibbonsOffset = subOffsets[9] + 0xA8;
         // Purifier = subOffsets[14] + 0xA8;
 
         bool jp = subLength[7] == 0x1E00;
@@ -90,13 +108,7 @@ public sealed class SAV3XD : SaveFile, IGCSaveFile, IBoxDetailName, IDaycareStor
 
     private void Initialize()
     {
-        OFS_PouchHeldItem = Trainer1 + 0x4C8;
-        OFS_PouchKeyItem = Trainer1 + 0x540;
-        OFS_PouchBalls = Trainer1 + 0x5EC;
-        OFS_PouchTMHM = Trainer1 + 0x62C;
-        OFS_PouchBerry = Trainer1 + 0x72C;
-        OFS_PouchCologne = Trainer1 + 0x7E4;
-        OFS_PouchDisc = Trainer1 + 0x7F0;
+        OFS_Pouch = Trainer1 + 0x4C8;
 
         // Since PartyCount is not stored in the save file,
         // Count up how many party slots are active.
@@ -138,8 +150,8 @@ public sealed class SAV3XD : SaveFile, IGCSaveFile, IBoxDetailName, IDaycareStor
     // Configuration
     protected override SAV3XD CloneInternal() => new((SaveIndex, SaveCount), Container.ToArray(), false) { MemoryCard = MemoryCard };
 
-    protected override int SIZE_STORED => PokeCrypto.SIZE_3XSTORED;
-    protected override int SIZE_PARTY => PokeCrypto.SIZE_3XSTORED; // unused
+    public override int SIZE_STORED => PokeCrypto.SIZE_3XSTORED;
+    public override int SIZE_PARTY => PokeCrypto.SIZE_3XSTORED; // unused
     public override XK3 BlankPKM => new();
     public override Type PKMType => typeof(XK3);
 
@@ -239,9 +251,12 @@ public sealed class SAV3XD : SaveFile, IGCSaveFile, IBoxDetailName, IDaycareStor
         set { var time = PlayedSpan; PlayedSpan = time - TimeSpan.FromSeconds(time.Seconds) + TimeSpan.FromSeconds(value); }
     }
 
+    public Span<byte> GiftRibbons => Data.Slice(GiftRibbonsOffset, IGiftRibbons.SIZE_3);
+
     // Trainer Info
     public override GameVersion Version { get => GameVersion.XD; set { } }
-    public override string OT { get => GetString(Data.Slice(Trainer1 + 0x00, 20)); set => SetString(Data.Slice(Trainer1 + 0x00, 20), value, 10, StringConverterOption.ClearZero); }
+    public Span<byte> OriginalTrainerTrash => Data.Slice(Trainer1 + 0x00, 20);
+    public override string OT { get => GetString(OriginalTrainerTrash); set => SetString(OriginalTrainerTrash, value, 10, StringConverterOption.ClearZero); }
     public override uint ID32 { get => ReadUInt32BigEndian(Data[(Trainer1 + 0x2C)..]); set => WriteUInt32BigEndian(Data[(Trainer1 + 0x2C)..], value); }
     public override ushort SID16 { get => ReadUInt16BigEndian(Data[(Trainer1 + 0x2C)..]); set => WriteUInt16BigEndian(Data[(Trainer1 + 0x2C)..], value); }
     public override ushort TID16 { get => ReadUInt16BigEndian(Data[(Trainer1 + 0x2E)..]); set => WriteUInt16BigEndian(Data[(Trainer1 + 0x2E)..], value); }
@@ -261,14 +276,8 @@ public sealed class SAV3XD : SaveFile, IGCSaveFile, IBoxDetailName, IDaycareStor
         SetString(Data.Slice(GetBoxInfoOffset(box), 20), value, 8, StringConverterOption.ClearZero);
     }
 
-    protected override XK3 GetPKM(byte[] data)
-    {
-        if (data.Length != SIZE_STORED)
-            Array.Resize(ref data, SIZE_STORED);
-        return new(data);
-    }
-
-    protected override byte[] DecryptPKM(byte[] data) => data;
+    protected override XK3 GetPKM(Memory<byte> data) => new(data);
+    protected override void DecryptPKM(Span<byte> data) { }
     public override XK3 GetPartySlot(ReadOnlySpan<byte> data) => GetStoredSlot(data);
 
     public override XK3 GetStoredSlot(ReadOnlySpan<byte> data)
@@ -344,25 +353,7 @@ public sealed class SAV3XD : SaveFile, IGCSaveFile, IBoxDetailName, IDaycareStor
         */
     }
 
-    public override IReadOnlyList<InventoryPouch> Inventory
-    {
-        get
-        {
-            var info = ItemStorage3XD.Instance;
-            InventoryPouch[] pouch =
-            [
-                new InventoryPouch3GC(InventoryType.Items, info, 999, OFS_PouchHeldItem, 30), // 20 COLO, 30 XD
-                new InventoryPouch3GC(InventoryType.KeyItems, info, 1, OFS_PouchKeyItem, 43),
-                new InventoryPouch3GC(InventoryType.Balls, info, 999, OFS_PouchBalls, 16),
-                new InventoryPouch3GC(InventoryType.TMHMs, info, 999, OFS_PouchTMHM, 64),
-                new InventoryPouch3GC(InventoryType.Berries, info, 999, OFS_PouchBerry, 46),
-                new InventoryPouch3GC(InventoryType.Medicine, info, 999, OFS_PouchCologne, 3), // Cologne
-                new InventoryPouch3GC(InventoryType.BattleItems, info, 1, OFS_PouchDisc, 60),
-            ];
-            return pouch.LoadAll(Data);
-        }
-        set => value.SaveAll(Data);
-    }
+    public override PlayerBag3XD Inventory => new(this);
 
     // Daycare Structure:
     // 0x00 -- Occupied

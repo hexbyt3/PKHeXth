@@ -121,8 +121,8 @@ public sealed class SAV8SWSH : SaveFile, ISaveBlock8SWSH, ITrainerStatRecord, IS
     public override IReadOnlyList<string> PKMExtensions => EntityFileExtension.GetExtensionsHOME();
 
     // Configuration
-    protected override int SIZE_STORED => PokeCrypto.SIZE_8STORED;
-    protected override int SIZE_PARTY => PokeCrypto.SIZE_8PARTY;
+    public override int SIZE_STORED => PokeCrypto.SIZE_8STORED;
+    public override int SIZE_PARTY => PokeCrypto.SIZE_8PARTY;
     public override int SIZE_BOXSLOT => PokeCrypto.SIZE_8PARTY;
     public override PK8 BlankPKM => new();
     public override Type PKMType => typeof(PK8);
@@ -133,8 +133,8 @@ public sealed class SAV8SWSH : SaveFile, ISaveBlock8SWSH, ITrainerStatRecord, IS
     public override EntityContext Context => EntityContext.Gen8;
     public override int MaxStringLengthTrainer => 12;
     public override int MaxStringLengthNickname => 12;
-    protected override PK8 GetPKM(byte[] data) => new(data);
-    protected override byte[] DecryptPKM(byte[] data) => PokeCrypto.DecryptArray8(data);
+    protected override PK8 GetPKM(Memory<byte> data) => new(data);
+    protected override void DecryptPKM(Span<byte> data) => PokeCrypto.Decrypt8(data);
 
     public override bool IsVersionValid() => Version is GameVersion.SW or GameVersion.SH;
 
@@ -161,43 +161,23 @@ public sealed class SAV8SWSH : SaveFile, ISaveBlock8SWSH, ITrainerStatRecord, IS
     public override int PlayedSeconds { get => Played.PlayedSeconds; set => Played.PlayedSeconds = value; }
 
     // Inventory
-    public override IReadOnlyList<InventoryPouch> Inventory { get => Items.Inventory; set => Items.Inventory = value; }
+    public override PlayerBag8 Inventory => new(this);
 
     // Storage
     public override int GetPartyOffset(int slot) => Party + (SIZE_PARTY * slot);
     public override int GetBoxOffset(int box) => Box + (SIZE_PARTY * box * 30);
     public string GetBoxName(int box) => BoxLayout[box];
     public void SetBoxName(int box, ReadOnlySpan<char> value) => BoxLayout.SetBoxName(box, value);
-    public override byte[] GetDataForBox(PKM pk) => pk.EncryptedPartyData;
 
     protected override void SetPKM(PKM pk, bool isParty = false)
     {
         PK8 pk8 = (PK8)pk;
         // Apply to this Save File
         pk8.UpdateHandler(this);
-
-        if (FormArgumentUtil.IsFormArgumentTypeDatePair(pk8.Species, pk8.Form))
-        {
-            pk8.FormArgumentElapsed = pk8.FormArgumentMaximum = 0;
-            pk8.FormArgumentRemain = (byte)GetFormArgument(pk8);
-        }
-
         pk8.RefreshChecksum();
     }
 
     protected override void SetRecord(PKM pk) => AddCountAcquired(pk);
-
-    private static uint GetFormArgument(PKM pk)
-    {
-        if (pk.Form == 0)
-            return 0;
-        return pk.Species switch
-        {
-            (int)Species.Furfrou => 5u, // Furfrou
-            (int)Species.Hoopa => 3u, // Hoopa
-            _ => 0u,
-        };
-    }
 
     private void AddCountAcquired(PKM pk)
     {
@@ -228,8 +208,14 @@ public sealed class SAV8SWSH : SaveFile, ISaveBlock8SWSH, ITrainerStatRecord, IS
 
     protected override Span<byte> BoxBuffer => BoxInfo.Data;
     protected override Span<byte> PartyBuffer => PartyInfo.Data;
-    public override PK8 GetDecryptedPKM(byte[] data) => GetPKM(DecryptPKM(data));
-    public override PK8 GetBoxSlot(int offset) => GetDecryptedPKM(BoxInfo.Data.Slice(offset, SIZE_PARTY).ToArray()); // party format in boxes!
+    public override PK8 GetDecryptedPKM(Memory<byte> data)
+    {
+        DecryptPKM(data.Span);
+        return GetPKM(data);
+    }
+
+    protected override PK8 GetBoxSlot(int offset) => GetDecryptedPKM(BoxInfo.Data.Slice(offset, SIZE_PARTY).ToArray()); // party format in boxes!
+    protected override void WriteSlotBox(PKM pk, Span<byte> data) => pk.WriteEncryptedDataParty(data);
 
     public int GetRecord(int recordID) => Records.GetRecord(recordID);
     public void SetRecord(int recordID, int value) => Records.SetRecord(recordID, value);
@@ -239,7 +225,7 @@ public sealed class SAV8SWSH : SaveFile, ISaveBlock8SWSH, ITrainerStatRecord, IS
 
     public override StorageSlotSource GetBoxSlotFlags(int index)
     {
-        int team = Array.IndexOf(TeamIndexes.TeamSlots, index);
+        int team = TeamIndexes.TeamSlots.IndexOf(index);
         if (team < 0)
             return StorageSlotSource.None;
 

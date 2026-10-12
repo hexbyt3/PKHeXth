@@ -79,6 +79,8 @@ public sealed class Bank7 : BulkStorage, IBoxDetailName
     public override GameVersion Version { get => GameVersion.USUM; set { } }
     public override PersonalTable7 Personal => PersonalTable.USUM;
     public override ReadOnlySpan<ushort> HeldItems => Legal.HeldItems_SM;
+    protected override PK7 GetPKM(Memory<byte> data) => new(data);
+    protected override void DecryptPKM(Span<byte> data) => PokeCrypto.Decrypt67(data);
     protected override Bank7 CloneInternal() => new(Data.ToArray(), PKMType, BoxStart, SlotsPerBox);
 
     public override int BoxCount => BankCount + 1; // 100 + 1 transfer box

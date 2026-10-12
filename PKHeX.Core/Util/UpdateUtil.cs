@@ -10,7 +10,7 @@ public static class UpdateUtil
     /// <returns>A version representing the latest available version of PKHeX, or null if the latest version could not be determined</returns>
     public static Version? GetLatestPKHeXVersion()
     {
-        const string apiEndpoint = "https://api.github.com/repos/hexbyt3/PKHeXth/releases/latest";
+        const string apiEndpoint = "https://api.github.com/repos/kwsch/pkhex/releases/latest";
         var responseJson = NetUtil.GetStringFromURL(new Uri(apiEndpoint));
         if (responseJson is null)
             return null;
@@ -28,16 +28,7 @@ public static class UpdateUtil
         if (second == -1)
             return null;
 
-        var tagString = responseJson[first..second];
-
-        // Normalize fork tag formats so System.Version can parse them.
-        // Strip a leading "v" if present (e.g. "v26.05.05") and convert
-        // the "-rev.N" revision suffix into a fourth version component
-        // (e.g. "26.05.05-rev.3" -> "26.05.05.3").
-        if (tagString.Length > 0 && (tagString[0] == 'v' || tagString[0] == 'V'))
-            tagString = tagString[1..];
-        tagString = tagString.Replace("-rev.", ".").Replace("-rev", ".");
-
+        var tagString = responseJson.AsSpan()[first..second];
         return !Version.TryParse(tagString, out var latestVersion) ? null : latestVersion;
     }
 }

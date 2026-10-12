@@ -48,7 +48,7 @@ public sealed class TrainerNameVerifier : Verifier
         }
         else if (trainer.Length > Legal.GetMaxLengthOT(enc.Generation, (LanguageID)pk.Language))
         {
-            if (!IsEdgeCaseLength(pk, enc, trainer))
+            if (!IsEdgeCaseLength(pk, enc, trainer) && !data.HasResult(GTSTrainerSanitized))
                 data.AddLine(Get(Severity.Invalid, OTLong));
         }
 
@@ -73,7 +73,7 @@ public sealed class TrainerNameVerifier : Verifier
     /// <summary>
     /// Checks if any player (human) was the original OT.
     /// </summary>
-    internal static bool IsPlayerOriginalTrainer(IEncounterable enc) => enc switch
+    internal static bool IsPlayerOriginalTrainer(IEncounterTemplate enc) => enc switch
     {
         IFixedTrainer { IsFixedTrainer: true } => false,
         MysteryGift { IsEgg: false } => false,

@@ -45,17 +45,16 @@ public sealed class PGT(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
     public int ItemSubID { get => ReadInt32LittleEndian(Data[0x8..]); set => WriteInt32LittleEndian(Data[0x8..], value); }
     public int PokewalkerCourseID { get => Data[0x4]; set => Data[0x4] = (byte)value; }
 
+    private Span<byte> DataGift => Data.Slice(8, PokeCrypto.SIZE_4PARTY);
+
     public PK4 PK
     {
-        get => _pk ??= new PK4(Data.Slice(8, PokeCrypto.SIZE_4PARTY).ToArray());
+        get => field ??= new PK4(DataGift.ToArray());
         set
         {
-            _pk = value;
-            var data = value.Data;
-            bool zero = !data.ContainsAnyExcept<byte>(0); // all zero
-            if (!zero)
-                data = PokeCrypto.EncryptArray45(data);
-            data.CopyTo(Data[8..]);
+            field = value.Clone(); // cache the PK4 for future use
+            value.Data.CopyTo(DataGift);
+            VerifyGiftEncryption();
         }
     }
 
@@ -63,31 +62,27 @@ public sealed class PGT(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
     {
         // Ensure PGT content is encrypted
         var clone = new PGT(Data.ToArray());
-        clone.VerifyPKEncryption();
+        clone.VerifyGiftEncryption();
         return clone.Data;
     }
 
-    private PK4? _pk;
-
     /// <summary>
-    /// Double-checks the encryption of the gift data for Pokémon data.
+    /// Double-checks the encryption of the gift data.
     /// </summary>
     /// <returns>True if data was encrypted, false if the data was not modified.</returns>
-    public bool VerifyPKEncryption()
+    public bool VerifyGiftEncryption()
     {
         if (GiftType is not (Pokémon or PokémonEgg))
             return false; // not encrypted
-        if (ReadUInt32LittleEndian(Data[(0x64 + 8)..]) != 0)
-            return false; // already encrypted (unused PK4 field, zero)
-        EncryptPK();
-        return true;
-    }
 
-    private void EncryptPK()
-    {
-        var span = Data.Slice(8, PokeCrypto.SIZE_4PARTY);
-        var ekdata = PokeCrypto.EncryptArray45(span);
-        ekdata.CopyTo(span);
+        var gift = DataGift;
+        var isEmpty = !gift.ContainsAnyExcept<byte>(0); // all zero
+        if (isEmpty) // shouldn't ever be empty, just return if so.
+            return false;
+        if (PokeCrypto.IsEncrypted45(gift)) // unused PK4 ribbon bits
+            return false;
+        PokeCrypto.Encrypt45(gift);
+        return true;
     }
 
     public GiftType4 GiftType { get => (GiftType4)CardType; set => CardType = (byte)value; }
@@ -177,7 +172,7 @@ public sealed class PGT(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
             var a = LCRNG.Next16(ref seed);
             var b = LCRNG.Next16(ref seed);
             var pid = (b << 16) | a;
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
             var c = LCRNG.Next15(ref seed);
             var d = LCRNG.Next15(ref seed);
@@ -214,7 +209,7 @@ public sealed class PGT(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
             // Check for anti-shiny.
             var xor = (a ^ b) >> 3;
             bool arng = false;
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
             {
                 while (true)
                 {
@@ -226,7 +221,7 @@ public sealed class PGT(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
                     arng = true;
                     break;
                 }
-                if (!criteria.IsSatisfiedNature((Nature)(pid % 25)))
+                if (!criteria.IsSatisfiedNature(pid))
                     continue;
             }
 
@@ -300,7 +295,6 @@ public sealed class PGT(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
         pk4.Move3 = 346; pk4.Move3_PP = 15;
         pk4.Ability = (int)Core.Ability.Hydration;
         pk4.FatefulEncounter = true;
-        pk4.Ball = (int)Core.Ball.Poke;
 
         // Manaphy is the only PGT gift egg! (and the only gift that needs a version to be set)
         var version = trainer.Version;
@@ -317,6 +311,7 @@ public sealed class PGT(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
         pk4.Nickname = SpeciesName.GetEggName(lang, 4);
         pk4.EggLocation = Locations.Ranger4;
         pk4.EggMetDate = pk4.MetDate = EncounterDate.GetDateNDS();
+        pk4.Ball = (int)Core.Ball.Poke;
     }
 
     public bool HasPID => PK.PID > 1; // 0=Random, 1=Random (Anti-Shiny). 0 was never used in any Gen4 gift (all non-shiny).
@@ -376,7 +371,7 @@ public sealed class PGT(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
                     break;
                 pid = ARNG.Next(pid);
             }
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
             if (EntityGender.GetFromPIDAndRatio(pid, gr) != gender)
                 continue;
@@ -451,6 +446,17 @@ public sealed class PGT(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
     public bool RibbonWorld { get => PK.RibbonWorld; set => PK.RibbonWorld = value; }
     public bool RibbonChampionWorld { get => PK.RibbonChampionWorld; set => PK.RibbonChampionWorld = value; }
     public bool RibbonSouvenir { get => PK.RibbonSouvenir; set => PK.RibbonSouvenir = value; }
+
+    public byte RibbonChampionWorldDescription { get => Data[0xF4]; set => Data[0xF4] = value; }
+    public byte RibbonBirthdayDescription { get => Data[0xF5]; set => Data[0xF5] = value; }
+    public byte RibbonSpecialDescription { get => Data[0xF6]; set => Data[0xF6] = value; }
+    public byte RibbonSouvenirDescription { get => Data[0xF7]; set => Data[0xF7] = value; }
+    public byte RibbonWishingDescription { get => Data[0xF8]; set => Data[0xF8] = value; }
+    public byte RibbonClassicDescription { get => Data[0xF9]; set => Data[0xF9] = value; }
+    public byte RibbonPremierDescription { get => Data[0xFA]; set => Data[0xFA] = value; }
+    public byte RibbonChampionBattleDescription { get => Data[0xFB]; set => Data[0xFB] = value; }
+    public byte RibbonChampionRegionalDescription { get => Data[0xFC]; set => Data[0xFC] = value; }
+    public byte RibbonChampionNationalDescription { get => Data[0xFD]; set => Data[0xFD] = value; }
 
     public RandomCorrelationRating IsCompatible(PIDType type, PKM pk)
     {

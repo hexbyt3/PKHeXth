@@ -45,27 +45,55 @@ public interface IFormArgument
     byte FormArgumentMaximum { get; set; }
 }
 
+public enum FormArgumentType
+{
+    /// <summary> Doesn't use the form argument value. </summary>
+    None,
+
+    /// <summary> Uses the form argument value as a single value. </summary>
+    Raw,
+
+    /// <summary> Party Stat split; stores (streak) in core and (remain, elapsed) in party. </summary>
+    TripleParty,
+
+    /// <summary> Uses the form argument value as a (max, remain, elapsed) tuple. </summary>
+    Triple,
+
+    /// <summary> Uses the form argument value as a single value, but has special edge case handling for precise names. </summary>
+    Named,
+}
+
 /// <summary>
 /// Logic for mutating <see cref="IFormArgument"/> objects.
 /// </summary>
 public static class FormArgumentUtil
 {
-    /// <summary>
-    /// Sets the suggested Form Argument to the <see cref="pk"/>.
-    /// </summary>
-    public static void SetSuggestedFormArgument(this PKM pk, EvolutionHistory history, ushort originalSpecies = 0)
+    extension(PKM pk)
     {
-        if (pk is not IFormArgument)
-            return;
+        /// <summary>
+        /// Sets the suggested Form Argument to the <see cref="pk"/>.
+        /// </summary>
+        public void SetSuggestedFormArgument(ushort species, byte form, EntityContext current, EvolutionHistory history, ushort originalSpecies = 0)
+        {
+            if (pk is not IFormArgument)
+                return;
+            uint value = IsFormArgumentTypeDateTriple(species, form)
+                ? GetFormArgumentMax(species, form, current)
+                : GetFormArgumentMinEvolution(species, originalSpecies);
+            if (IsFormArgumentAbleToStay0(species, form, history))
+                value = 0;
+            pk.ChangeFormArgument(value);
+        }
 
-        var (species, form) = (pk.Species, pk.Form);
-
-        uint value = IsFormArgumentTypeDatePair(species, form)
-            ? GetFormArgumentMax(species, form, pk.Context)
-            : GetFormArgumentMinEvolution(species, originalSpecies);
-        if (IsFormArgumentAbleToStay0(species, form, history))
-            value = 0;
-        pk.ChangeFormArgument(value);
+        /// <summary>
+        /// Modifies the <see cref="IFormArgument"/> values for the provided <see cref="pk"/> to the requested <see cref="value"/>.
+        /// </summary>
+        public void ChangeFormArgument(uint value)
+        {
+            if (pk is not IFormArgument f)
+                return;
+            f.ChangeFormArgument(pk.Species, pk.Form, pk.Context, value);
+        }
     }
 
     /// <summary>
@@ -87,16 +115,6 @@ public static class FormArgumentUtil
     };
 
     /// <summary>
-    /// Modifies the <see cref="IFormArgument"/> values for the provided <see cref="pk"/> to the requested <see cref="value"/>.
-    /// </summary>
-    public static void ChangeFormArgument(this PKM pk, uint value)
-    {
-        if (pk is not IFormArgument f)
-            return;
-        f.ChangeFormArgument(pk.Species, pk.Form, pk.Context, value);
-    }
-
-    /// <summary>
     /// Modifies the <see cref="IFormArgument"/> values for the provided inputs to the requested <see cref="value"/>.
     /// </summary>
     /// <param name="f">Form Argument object</param>
@@ -106,7 +124,7 @@ public static class FormArgumentUtil
     /// <param name="value">Value to apply</param>
     public static void ChangeFormArgument(this IFormArgument f, ushort species, byte form, EntityContext context, uint value)
     {
-        if (!IsFormArgumentTypeDatePair(species, form))
+        if (!IsFormArgumentTypeDateTriple(species, form))
         {
             f.FormArgument = value;
             return;
@@ -114,7 +132,7 @@ public static class FormArgumentUtil
 
         var max = GetFormArgumentMax(species, form, context);
         f.FormArgumentRemain = (byte)value;
-        if (value == max || (value == 0 && species is (int)Hoopa && form == 1 && context.Generation() >= 8))
+        if (value == max || (value == 0 && species is (int)Hoopa && form == 1 && context.IsEraHOME))
         {
             f.FormArgumentElapsed = f.FormArgumentMaximum = 0;
             return;
@@ -127,36 +145,61 @@ public static class FormArgumentUtil
     }
 
     /// <summary>
+    /// Gets the maximum value the <see cref="IFormArgument.FormArgument"/> can be for GUI editing purposes, accounting for edge cases that are manually checked by legality.
+    /// </summary>
+    /// <param name="species">Entity Species</param>
+    /// <param name="form">Entity Form</param>
+    /// <param name="context">Context to check with.</param>
+    public static uint GetFormArgumentMaxEdge(ushort species, byte form, EntityContext context)
+    {
+        if (species == (ushort)Furfrou && context != EntityContext.Gen6)
+            return 5; // Gen6=>Gen7 clears form but forgets to clear Form Argument.
+
+        return GetFormArgumentMax(species, form, context);
+    }
+
+    /// <summary>
+    /// Gets the value format that form argument values are saved as.
+    /// </summary>
+    /// <param name="species">Entity Species</param>
+    /// <param name="form">Entity Form</param>
+    /// <param name="context">Context to check with.</param>
+    public static FormArgumentType GetType(ushort species, byte form, EntityContext context) => (Species)species switch
+    {
+        Furfrou => context == EntityContext.Gen6 ? FormArgumentType.TripleParty : FormArgumentType.Triple,
+        Hoopa when form == 1 => context == EntityContext.Gen6 ? FormArgumentType.TripleParty : FormArgumentType.Triple,
+        Alcremie => FormArgumentType.Named,
+
+        _ => GetFormArgumentMax(species, form, context) > 0 ? FormArgumentType.Raw : FormArgumentType.None,
+    };
+
+    /// <summary>
     /// Gets the maximum value the <see cref="IFormArgument.FormArgument"/> can be.
     /// </summary>
     /// <param name="species">Entity Species</param>
     /// <param name="form">Entity Form</param>
     /// <param name="context">Context to check with.</param>
-    public static uint GetFormArgumentMax(ushort species, byte form, EntityContext context)
+    public static uint GetFormArgumentMax(ushort species, byte form, EntityContext context) => species switch
     {
-        var gen = context.Generation();
-        return species switch
-        {
-            (int)Furfrou when form != 0 => 5,
-            (int)Hoopa when form == 1 => 3,
-            (int)Yamask when form == 1 => 9999,
-            (int)Runerigus when form == 0 => 9999,
-            (int)Alcremie => (uint)AlcremieDecoration.Ribbon,
-            (int)Qwilfish when form == 1 && gen >= 8 => 9999,
-            (int)Overqwil => 9999, // 20
-            (int)Stantler or (int)Wyrdeer when gen >= 8 => 9999,
-            (int)Basculin when form == 2 => 9999, // 294
-            (int)Basculegion => 9999, // 294
-            (int)Primeape or (int)Annihilape when gen >= 8 => 9999,
-            (int)Bisharp or (int)Kingambit when gen >= 8 => 9999,
-            (int)Gimmighoul => 998,
-            (int)Gholdengo => 999,
-            (int)Koraidon or (int)Miraidon => 1,
-            (int)Farfetchd when form == 1 && gen >= 8 => 9999,
-            (int)Sirfetchd when gen >= 8 => 9999,
-            _ => 0,
-        };
-    }
+        (int)Furfrou when form != 0 => 5,
+        (int)Hoopa when form == 1 => 3,
+        (int)Yamask when form == 1 => 9999,
+        (int)Runerigus when form == 0 => 9999,
+        (int)Alcremie => (uint)AlcremieDecoration.Ribbon,
+        (int)Qwilfish when form == 1 && context.IsEraHOME => 9999,
+        (int)Overqwil => 9999, // 20
+        (int)Stantler or (int)Wyrdeer when context.IsEraHOME => 9999,
+        (int)Basculin when form == 2 => 9999, // 294
+        (int)Basculegion => 9999, // 294
+        (int)Primeape or (int)Annihilape when context.IsEraHOME => 9999,
+        (int)Bisharp or (int)Kingambit when context.IsEraHOME => 9999,
+        (int)Gimmighoul => 998,
+        (int)Gholdengo => 999,
+        (int)Koraidon or (int)Miraidon => 1,
+        (int)Farfetchd when form == 1 && context.IsEraHOME => 9999,
+        (int)Sirfetchd when context.IsEraHOME => 9999,
+        _ => 0,
+    };
 
     /// <summary>
     /// Gets the minimum value the <see cref="IFormArgument.FormArgument"/> value can be to satisfy an evolution requirement.
@@ -179,9 +222,19 @@ public static class FormArgumentUtil
     /// <summary>
     /// Checks if the <see cref="IFormArgument.FormArgument"/> value is stored as a days-elapsed / days-remaining pair.
     /// </summary>
-    public static bool IsFormArgumentTypeDatePair(ushort species, byte form) => species switch
+    public static bool IsFormArgumentTypeDateTriple(ushort species, byte form) => species switch
     {
         (int)Furfrou when form != 0 => true,
+        (int)Hoopa when form == 1 => true,
+        _ => false,
+    };
+
+    /// <summary>
+    /// Checks if the <see cref="IFormArgument.FormArgument"/> value is stored as a days-elapsed / days-remaining pair.
+    /// </summary>
+    public static bool IsFormArgumentTypeDateTripleVisible(ushort species, byte form) => species switch
+    {
+        (int)Furfrou => true, // Gen6=>Bank can revert form to 0 but not clear the form argument value, carries forward into Gen9+.
         (int)Hoopa when form == 1 => true,
         _ => false,
     };

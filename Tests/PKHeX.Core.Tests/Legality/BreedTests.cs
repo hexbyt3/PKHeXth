@@ -34,7 +34,7 @@ public class BreedTests
     [InlineData(BD, Gible, 0, BodySlam, Outrage, SandTomb, DragonBreath)]
     public void VerifyBreed(GameVersion game, Species species, byte form, params Move[] movelist)
     {
-        var gen = game.GetGeneration();
+        var gen = game.Generation;
         Span<ushort> moves = stackalloc ushort[MovesetCount];
         GetMoves(movelist, moves);
         var origins = new byte[moves.Length];
@@ -51,10 +51,10 @@ public class BreedTests
     [InlineData(C, Igglybuff, 0, Charm, DefenseCurl, Sing, Flamethrower)] // invalid push-out order
     [InlineData(SH, Honedge, 0, FuryCutter, WideGuard, DestinyBond)] // insufficient move count
     [InlineData(OR, Rotom, 0, Discharge, Charge, Trick, ConfuseRay)] // invalid push-out order
-    [InlineData(OR, Rotom, 0, ThunderWave, ThunderShock, ConfuseRay, Discharge)] // no inheriting levelup
+    [InlineData(OR, Rotom, 0, ThunderWave, ThunderShock, ConfuseRay, Discharge)] // no inheriting level-up moves
     public void CheckBad(GameVersion game, Species species, byte form, params Move[] movelist)
     {
-        var gen = game.GetGeneration();
+        var gen = game.Generation;
         Span<ushort> moves = stackalloc ushort[MovesetCount];
         GetMoves(movelist, moves);
         Span<byte> result = stackalloc byte[moves.Length];
@@ -68,7 +68,7 @@ public class BreedTests
     [InlineData(BD, Gible, 0, BodySlam, SandTomb, Outrage, DragonBreath)]
     public void CheckFix(GameVersion game, Species species, byte form, params Move[] movelist)
     {
-        var gen = game.GetGeneration();
+        var gen = game.Generation;
         Span<ushort> moves = stackalloc ushort[MovesetCount];
         GetMoves(movelist, moves);
 

@@ -121,14 +121,14 @@ public static class Encounter9RNG
             return false;
         pk.Gender = gender;
 
-        var nature = enc.Nature != Nature.Random ? enc.Nature : enc.Species == (int)Species.Toxtricity
+        var nature = enc.Nature.IsFixed ? enc.Nature : enc.Species == (int)Species.Toxtricity
                 ? ToxtricityUtil.GetRandomNature(ref rand, pk.Form)
                 : (Nature)rand.NextInt(25);
 
         // Compromise on Nature -- some are fixed, some are random. If the request wants a specific nature, just mint it.
         if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(nature))
             return false;
-        pk.Nature = pk.StatNature = nature;
+        pk.Nature = pk.StatAlignment = nature;
 
         pk.HeightScalar = enc.Height != 0 ? enc.Height : (byte)(rand.NextInt(0x81) + rand.NextInt(0x80));
         pk.WeightScalar = enc.Weight != 0 ? enc.Weight : (byte)(rand.NextInt(0x81) + rand.NextInt(0x80));
@@ -187,7 +187,7 @@ public static class Encounter9RNG
         // Ability can be changed by Capsule/Patch.
         // Defer this check to later.
         // ReSharper disable once UnusedVariable
-        int ability = enc.Ability switch
+        _ = enc.Ability switch
         {
             AbilityPermission.Any12H => 1 << (int)rand.NextInt(3),
             AbilityPermission.Any12 => 1 << (int)rand.NextInt(2),
@@ -205,7 +205,7 @@ public static class Encounter9RNG
         if (pk.Gender != gender)
             return false;
 
-        var nature = enc.Nature != Nature.Random ? enc.Nature : enc.Species == (int)Species.Toxtricity
+        var nature = enc.Nature.IsFixed ? enc.Nature : enc.Species == (int)Species.Toxtricity
                 ? ToxtricityUtil.GetRandomNature(ref rand, pk.Form)
                 : (Nature)rand.NextInt(25);
         if (pk.Nature != nature)

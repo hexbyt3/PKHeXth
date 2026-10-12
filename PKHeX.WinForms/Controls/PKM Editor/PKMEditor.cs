@@ -176,6 +176,7 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
     private byte[] LastData = [];
 
     public PKM Data => Entity;
+    public void NotifyWasExported(PKM pk) { }
     public PKM Entity { get; private set; } = null!;
     public bool FieldsLoaded { get; private set; }
     public bool ChangingFields { get; set; }
@@ -349,7 +350,7 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
         Stats.UpdateIVs(this, EventArgs.Empty);
         UpdatePKRSInfected(this, EventArgs.Empty);
         UpdatePKRSCured(this, EventArgs.Empty);
-        UpdateNatureModification(CB_StatNature, Entity.StatNature);
+        UpdateNatureModification(CB_StatNature, Entity.StatAlignment);
 
         if (HaX)
         {
@@ -1796,8 +1797,8 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
         }
         else if (sender == CB_StatNature)
         {
-            Entity.StatNature = (Nature)WinFormsUtil.GetIndex(CB_StatNature);
-            UpdateNatureModification(CB_StatNature, Entity.StatNature);
+            Entity.StatAlignment = (Nature)WinFormsUtil.GetIndex(CB_StatNature);
+            UpdateNatureModification(CB_StatNature, Entity.StatAlignment);
             Stats.UpdateIVs(sender, EventArgs.Empty); // updating Nature will trigger stats to update as well
             UpdateLegality();
         }
@@ -1994,8 +1995,9 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
         if (ModifierKeys == Keys.Shift)
         {
             m.ClearMoveShopFlags();
-            if (Legality.EncounterMatch is IMasteryInitialMoveShop8 enc)
-                enc.SetInitialMastery(Entity);
+            var enc = Legality.EncounterMatch;
+            if (enc is IMasteryInitialMoveShop8 shop)
+                shop.SetInitialMastery(Entity, enc);
             m.SetMoveShopFlags(Entity);
             UpdateLegality();
             return;

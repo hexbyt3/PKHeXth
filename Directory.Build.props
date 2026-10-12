@@ -10,7 +10,7 @@
       Keep this equal to Version's Major.Minor.Build; update it (and rebuild ALM) when bumping the base.
     -->
     <AssemblyVersion>26.8.26.0</AssemblyVersion>
-    <LangVersion>13</LangVersion>
+    <LangVersion>14</LangVersion>
     <Nullable>enable</Nullable>
     <NeutralLanguage>en</NeutralLanguage>
     <Product>PKHeX</Product>

@@ -19,7 +19,7 @@ public sealed class WC6(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
     public override bool FatefulEncounter => !IsLinkGift; // Link gifts do not set fateful encounter
     public bool IsLinkGift => Location == Locations.LinkGift6;
 
-    public int RestrictLanguage { get; set; } // None
+    public byte RestrictLanguage { get; set; } // None
     public byte RestrictVersion { get; set; } // Permit All
 
     public bool CanBeReceivedByVersion(GameVersion version)
@@ -546,7 +546,7 @@ public sealed class WC6(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
         }
         else
         {
-            if (!IsMatchEggLocation(pk)) return false;
+            if (!IsMatchEggLocationInternal(pk)) return false;
             if (Location != pk.MetLocation) return false;
         }
 

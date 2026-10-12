@@ -73,8 +73,8 @@ public static class ItemConverter
         NaN, 058, 059, 061, 444, NaN, NaN, 216, 445, 446, // 5
         NaN, 447, 051, 038, 039, 040, 478, 464, 456, 484, // 6
         NaN, 482, 033, 217, 151, NaN, 237, 244, 149, 153, // 7
-        152, 245, 221, 156, 150, 485, 086, 087, 222, 487, // 8
-        NaN, 223, 486, 488, 224, 243, 248, 490, 241, 491, // 9
+        152, 245, 221, 156, 150, 485, 086, 087, 222, 486, // 8
+        NaN, 223, 487, 488, 224, 243, 248, 490, 241, 491, // 9
         NaN, 489, 240, 473, NaN, 259, 228, 246, 242, 157, // 10
         088, 089, 229, 247, 504, NaN, NaN, 239, 258, 230, // 11
         NaN, 034, 035, 036, 037, 238, 231, 475, 481, NaN, // 12
@@ -165,6 +165,20 @@ public static class ItemConverter
     }
 
     /// <summary>
+    /// Gets a format specific item index depending on the desired format and the provided item index &amp; origin format.
+    /// </summary>
+    /// <param name="itemID">Item ID to convert</param>
+    /// <param name="format">Current format</param>
+    /// <returns>Converted item ID</returns>
+    public static int GetItemDisplay(int itemID, EntityContext format) => itemID == 0 ? 0 : format switch
+    {
+        EntityContext.Gen1 => GetItemFuture2(GetItemFuture1((byte)itemID)),
+        EntityContext.Gen2 => GetItemFuture2((byte)itemID),
+        EntityContext.Gen3 => GetItemFuture3((ushort)itemID),
+        _ => itemID,
+    };
+
+    /// <summary>
     /// Gets a format specific <see cref="PKM.HeldItem"/> value depending on the desired format and the provided item index &amp; origin format.
     /// </summary>
     /// <param name="srcItem">Held Item to apply</param>
@@ -204,19 +218,10 @@ public static class ItemConverter
         };
     }
 
-    /// <summary>
-    /// Checks if an item ID is an HM
-    /// </summary>
-    /// <param name="item">Item ID</param>
-    /// <param name="generation">Generation the <see cref="item"/> exists in</param>
-    /// <returns>True if is an HM</returns>
-    public static bool IsItemHM(ushort item, byte generation) => generation switch
-    {
-        1 => item is (>= 196 and <= 200),
-        2 => item is (>= 243 and <= 249),
-        3 => item is (>= 339 and <= 346),
-        _ => item is (>= 420 and <= 427) or 737,
-    };
+    public static bool IsItemHM1(ushort item) => item is (>= 196 and <= 200);
+    public static bool IsItemHM2(ushort item) => item is (>= 243 and <= 249);
+    public static bool IsItemHM3(ushort item) => item is (>= 339 and <= 346);
+    public static bool IsItemHM4(ushort item) => item is (>= 420 and <= 427) or 737;
 
     /// <summary>
     /// Checks if the catch rate byte is equivalent to a Gen2 held item.

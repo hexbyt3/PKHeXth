@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace PKHeX.Core;
@@ -152,8 +153,8 @@ public sealed class SAV4BR : SaveFile, IBoxDetailName
     // Configuration
     protected override SAV4BR CloneInternal() => new(this);
 
-    protected override int SIZE_STORED => PokeCrypto.SIZE_4STORED;
-    protected override int SIZE_PARTY => PokeCrypto.SIZE_4STORED + 84;
+    public override int SIZE_STORED => PokeCrypto.SIZE_4STORED;
+    public override int SIZE_PARTY => PokeCrypto.SIZE_4STORED + 84;
     public override BK4 BlankPKM => new();
     public override Type PKMType => typeof(BK4);
 
@@ -313,6 +314,9 @@ public sealed class SAV4BR : SaveFile, IBoxDetailName
         set => StringConverter4GC.SetStringUnicodeBR(value, BirthDayTrash);
     }
 
+    /// <summary>
+    /// <see cref="LocaleNDS4.LegalCountries"/>
+    /// </summary>
     public int Country { get => ReadUInt16BigEndian(Data[0x3C0..]); set => WriteUInt16BigEndian(Data[0x578..], (ushort)value); }
     public int Region { get => ReadUInt16BigEndian(Data[0x3C2..]); set => WriteUInt16BigEndian(Data[0x57A..], (ushort)value); }
 
@@ -406,10 +410,8 @@ public sealed class SAV4BR : SaveFile, IBoxDetailName
     /// </remarks>
     public ulong PlayerID
     {
-        get => (
-            ((ulong)Data[0x128CA] << 56) | ((ulong)Data[0x128CC] << 48) | ((ulong)Data[0x128CE] << 40) | ((ulong)Data[0x128C0] << 32) |
-            ((ulong)Data[0x128D2] << 24) | ((ulong)Data[0x128D4] << 16) | ((ulong)Data[0x128D6] << 8) | Data[0x128C8]
-        );
+        get => ((ulong)Data[0x128CA] << 56) | ((ulong)Data[0x128CC] << 48) | ((ulong)Data[0x128CE] << 40) | ((ulong)Data[0x128C0] << 32) |
+               ((ulong)Data[0x128D2] << 24) | ((ulong)Data[0x128D4] << 16) | ((ulong)Data[0x128D6] << 8) | Data[0x128C8];
         set
         {
             Data[0x128CA] = (byte)((value >> 56) & 0xFF);
@@ -464,14 +466,8 @@ public sealed class SAV4BR : SaveFile, IBoxDetailName
         SetString(span, value, BoxNameLength / 2, StringConverterOption.ClearZero);
     }
 
-    protected override BK4 GetPKM(byte[] data)
-    {
-        if (data.Length != SIZE_STORED)
-            Array.Resize(ref data, SIZE_STORED);
-        return BK4.ReadUnshuffle(data);
-    }
-
-    protected override byte[] DecryptPKM(byte[] data) => data;
+    protected override BK4 GetPKM(Memory<byte> data) => new(data);
+    protected override void DecryptPKM(Span<byte> data) => PokeCrypto.Decrypt4BE(data[..SIZE_STORED]);
 
     protected override void SetPKM(PKM pk, bool isParty = false)
     {
@@ -483,8 +479,12 @@ public sealed class SAV4BR : SaveFile, IBoxDetailName
 
     protected override void SetPartyValues(PKM pk, bool isParty)
     {
-        if (pk is G4PKM g4)
-            g4.Sanity = isParty ? (ushort)0xC000 : (ushort)0x4000;
+        if (pk is not BK4 bk4)
+            return;
+
+        // Update sanity flags to the correct state
+        bk4.IsDecryptedStateBox = true;
+        bk4.IsDecryptedStateParty = isParty;
     }
 
     /// <summary>
@@ -494,21 +494,19 @@ public sealed class SAV4BR : SaveFile, IBoxDetailName
     /// <returns>Where the PKM was found, or (255, 255) otherwise</returns>
     public (byte Box, byte Slot) FindSlot(PKM pk)
     {
-        var party = PartyData;
         for (byte slot = 0; slot < PartyCount; slot++)
         {
-            PKM other = party[slot];
-            if (pk.PID == other.PID && pk.DecryptedBoxData.AsSpan().SequenceEqual(other.DecryptedBoxData))
+            var other = GetPartySlotAtIndex(slot);
+            if (pk.EqualsStored(other))
                 return (0, slot);
         }
 
-        var boxes = BoxData;
         for (byte box = 0; box < BoxCount; box++)
         {
             for (byte slot = 0; slot < BoxSlotCount; slot++)
             {
-                PKM other = boxes[(box * BoxSlotCount) + slot];
-                if (pk.PID == other.PID && pk.DecryptedBoxData.AsSpan().SequenceEqual(other.DecryptedBoxData))
+                var other = GetBoxSlotAtIndex(box, slot);
+                if (pk.EqualsStored(other))
                     return (++box, slot);
             }
         }
@@ -586,13 +584,53 @@ public sealed class SAV4BR : SaveFile, IBoxDetailName
         }
     }
 
-    private static void ComputeChecksums(Span<byte> span, Span<uint> checksums)
+    private static void ComputeChecksums(ReadOnlySpan<byte> span, Span<uint> checksums)
     {
-        for (int i = 0; i < span.Length; i += 2)
+        // Accumulate bit counts for each of the 16 bit positions across all u16 values.
+        // The save format is big-endian, so bit 0 of the u16 is the LSB of the *second* byte in each pair.
+        // We process as native ushort and fix up the mapping at the end based on endianness.
+
+        var u16 = MemoryMarshal.Cast<byte, ushort>(span);
+
+        uint b00 = 0, b01 = 0, b02 = 0, b03 = 0, b04 = 0, b05 = 0, b06 = 0, b07 = 0;
+        uint b08 = 0, b09 = 0, b10 = 0, b11 = 0, b12 = 0, b13 = 0, b14 = 0, b15 = 0;
+
+        foreach (var value in u16)
         {
-            uint value = ReadUInt16BigEndian(span[i..]);
-            for (int c = 0; c < checksums.Length; c++)
-                checksums[c] += ((value >> c) & 1);
+            uint v = value;
+            b00 += (v      ) & 1;
+            b01 += (v >>  1) & 1;
+            b02 += (v >>  2) & 1;
+            b03 += (v >>  3) & 1;
+            b04 += (v >>  4) & 1;
+            b05 += (v >>  5) & 1;
+            b06 += (v >>  6) & 1;
+            b07 += (v >>  7) & 1;
+            b08 += (v >>  8) & 1;
+            b09 += (v >>  9) & 1;
+            b10 += (v >> 10) & 1;
+            b11 += (v >> 11) & 1;
+            b12 += (v >> 12) & 1;
+            b13 += (v >> 13) & 1;
+            b14 += (v >> 14) & 1;
+            b15 += (v >> 15) & 1;
+        }
+
+        // On little-endian, native ushort has bytes swapped vs big-endian source.
+        // Bits 0-7 of native correspond to bits 8-15 of big-endian, and vice versa.
+        if (BitConverter.IsLittleEndian)
+        {
+            checksums[00] = b08; checksums[01] = b09; checksums[02] = b10; checksums[03] = b11;
+            checksums[04] = b12; checksums[05] = b13; checksums[06] = b14; checksums[07] = b15;
+            checksums[08] = b00; checksums[09] = b01; checksums[10] = b02; checksums[11] = b03;
+            checksums[12] = b04; checksums[13] = b05; checksums[14] = b06; checksums[15] = b07;
+        }
+        else
+        {
+            checksums[00] = b00; checksums[01] = b01; checksums[02] = b02; checksums[03] = b03;
+            checksums[04] = b04; checksums[05] = b05; checksums[06] = b06; checksums[07] = b07;
+            checksums[08] = b08; checksums[09] = b09; checksums[10] = b10; checksums[11] = b11;
+            checksums[12] = b12; checksums[13] = b13; checksums[14] = b14; checksums[15] = b15;
         }
     }
     #endregion

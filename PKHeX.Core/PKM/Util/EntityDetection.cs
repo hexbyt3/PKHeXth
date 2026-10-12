@@ -49,18 +49,23 @@ public static class EntityDetection
     /// </remarks>
     public static bool IsPresentSAV4Ranch(ReadOnlySpan<byte> data) => IsPresent(data) && ReadUInt32BigEndian(data) != 0x28; // Species non-zero, ignore file end marker
 
+    /// <summary>
+    /// Checks the PID and species of the Gen4+ entity to determine if it is present.
+    /// </summary>
     public static bool IsPresent(ReadOnlySpan<byte> data)
     {
         if (ReadUInt32LittleEndian(data) != 0) // PID
-            return true;
-        ushort species = ReadUInt16LittleEndian(data[8..]);
-        return species != 0;
+            return true; // Empty slots are 0x00000000 PID.
+
+        // A PID of 0x00000000 is possible to naturally occur; encryption/shuffle does not impact the first 2 bytes (species).
+        // The data occupying the species field can be immediately read; non-zero confirms species is present.
+        return ReadUInt16LittleEndian(data[8..]) != 0;
     }
 
     /// <summary>
     /// Gets a function that can check a span to see if a <see cref="PKM"/> is possibly present.
     /// </summary>
-    /// <param name="blank"></param>
+    /// <param name="blank">Implementation detail of the desired type to check for.</param>
     /// <returns>Function that checks if a span has a <see cref="PKM"/> present</returns>
     public static Func<ReadOnlySpan<byte>, bool> GetFuncIsPresent(PKM blank) => blank switch
     {

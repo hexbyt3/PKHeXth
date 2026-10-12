@@ -56,7 +56,7 @@ public partial class SAV_Trainer8b : Form
         trainerID1.LoadIDValues(SAV, SAV.Generation);
         MT_Money.Text = SAV.Money.ToString();
         CB_Language.SelectedValue = SAV.Language;
-        TB_Rival.Text = SAV.Rival;
+        TB_Rival.Text = SAV.RivalName;
 
         NUD_M.Value = SAV.ZoneID;
         NUD_X.Value = SAV.MyStatus.X;
@@ -109,7 +109,7 @@ public partial class SAV_Trainer8b : Form
         SAV.Money = Util.ToUInt32(MT_Money.Text);
         SAV.Language = WinFormsUtil.GetIndex(CB_Language);
         SAV.OT = TB_OTName.Text;
-        SAV.Rival = TB_Rival.Text;
+        SAV.RivalName = TB_Rival.Text;
         SAV.BattleTower.BP = (uint)NUD_BP.Value;
 
         // Copy Position

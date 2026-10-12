@@ -25,15 +25,17 @@ public static class EntityFormat
 
     private static EntityFormatDetected GetFormatInternal(ReadOnlySpan<byte> data) => data.Length switch
     {
-        SIZE_1JLIST or SIZE_1ULIST    => FormatPK1,
-        SIZE_2JLIST or SIZE_2ULIST    => FormatPK2,
+        SIZE_1JLIST or SIZE_1ULIST    => FormatPK1List,
+        SIZE_2JLIST or SIZE_2ULIST    => FormatPK2List,
+        SIZE_1PARTY or SIZE_1STORED   => FormatPK1,
+        SIZE_2PARTY or SIZE_2STORED   => FormatPK2,
         SIZE_2STADIUM                 => FormatSK2,
         SIZE_3PARTY or SIZE_3STORED   => FormatPK3,
         SIZE_3CSTORED                 => FormatCK3,
         SIZE_3XSTORED                 => FormatXK3,
-        SIZE_4PARTY or SIZE_4STORED   => GetFormat45(data),
         SIZE_4RSTORED                 => FormatRK4,
-        SIZE_5PARTY                   => FormatPK5,
+        SIZE_4PARTY or SIZE_4STORED or SIZE_5PARTY
+                                      => GetFormat45(data),
         SIZE_6STORED                  => GetFormat67(data),
         SIZE_6PARTY                   => GetFormat67_PGT(data),
         SIZE_8PARTY  or SIZE_8STORED  => GetFormat89(data),
@@ -65,14 +67,12 @@ public static class EntityFormat
     // assumes decrypted state
     private static EntityFormatDetected GetFormat45(ReadOnlySpan<byte> data)
     {
-        if (data.Length == SIZE_4RSTORED)
-            return FormatRK4;
         if (ReadUInt16LittleEndian(data[0x4..]) != 0)
             return FormatBK4; // BK4 non-zero sanity
         if (data[0x5F] < 0x10 && ReadUInt16LittleEndian(data[0x80..]) < 0x3333)
-            return FormatPK4; // Gen3/4 version origin, not Transporter
+            return data.Length == SIZE_5PARTY ? FormatBK4 : FormatPK4; // Gen3/4 version origin, not Transporter
         if (ReadUInt16LittleEndian(data[0x46..]) != 0)
-            return FormatPK4; // PK4.MetLocationExtended (unused in PK5)
+            return data.Length == SIZE_5PARTY ? FormatBK4 : FormatPK4; // PK4.MetLocationExtended (unused in PK5)
         return FormatPK5;
     }
 
@@ -101,9 +101,11 @@ public static class EntityFormat
             // Can still be zero if it's an egg in S/V.
             var ivs = ReadUInt32LittleEndian(core[0x8C..]);
             if (((ivs >> 30) & 1) != 1) // IsEgg flag not set!
+            {
                 // Not an egg, therefore should have obedience level as PK9/PA9.
                 // Since it doesn't, it's a Gen8 non-egg.
                 return IsFormatReally8b(pk);
+            }
 
             // ZA has no eggs. If 0xDE is non-zero, it's a Gen8 egg.
             if (core[0xDE] != 0) // SW/SH or BD/SP.
@@ -162,8 +164,10 @@ public static class EntityFormat
 
     private static PKM? GetFromBytes(Memory<byte> data, EntityFormatDetected format, EntityContext prefer) => format switch
     {
-        FormatPK1 => PokeList1.ReadFromSingle(data.Span),
-        FormatPK2 => PokeList2.ReadFromSingle(data.Span),
+        FormatPK1List => PokeList1.ReadFromSingle(data.Span),
+        FormatPK2List => PokeList2.ReadFromSingle(data.Span),
+        FormatPK1 => new PK1(data),
+        FormatPK2 => new PK2(data),
         FormatSK2 => new SK2(data),
         FormatPK3 => new PK3(data),
         FormatCK3 => new CK3(data),
@@ -264,6 +268,8 @@ public static class EntityFormat
 public enum EntityFormatDetected
 {
     None,
+
+    FormatPK1List, FormatPK2List,
 
     FormatPK1,
     FormatPK2, FormatSK2,

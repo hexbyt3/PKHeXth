@@ -14,7 +14,7 @@ public sealed record EncounterStatic8a
     public EntityContext Context => EntityContext.Gen8a;
     private const GameVersion Version = GameVersion.PLA;
     GameVersion IVersion.Version => GameVersion.PLA;
-    public ushort EggLocation => 0;
+    ushort ILocation.EggLocation => 0;
     ushort ILocation.Location => Location;
     public bool IsShiny => Shiny == Shiny.Always;
     public bool IsEgg => false;
@@ -133,9 +133,7 @@ public sealed record EncounterStatic8a
         var (learn, mastery) = GetLevelUpInfo();
         LoadInitialMoveset(pk, moves, learn, level);
         pk.SetMoves(moves);
-        pk.SetEncounterMasteryFlags(moves, mastery, level);
-        if (pk.AlphaMove != 0)
-            pk.SetMasteryFlagMove(pk.AlphaMove);
+        pk.SetEncounterMasteryFlags(moves, mastery, level, pk.AlphaMove);
     }
 
     public (Learnset Learn, Learnset Mastery) GetLevelUpInfo() => LearnSource8LA.GetLearnsetAndMastery(Species, Form);
@@ -189,7 +187,7 @@ public sealed record EncounterStatic8a
             return false;
         if (pk is IAlphaReadOnly a && a.IsAlpha != IsAlpha)
             return false;
-        if (!IsMatchEggLocation(pk))
+        if (!this.IsMatchEggLocation(pk))
             return false;
         if (!IsMatchLocation(pk))
             return false;
@@ -239,12 +237,6 @@ public sealed record EncounterStatic8a
         }
 
         return true;
-    }
-
-    private bool IsMatchEggLocation(PKM pk)
-    {
-        var expect = pk is PB8 ? Locations.Default8bNone : EggLocation;
-        return pk.EggLocation == expect;
     }
 
     private bool IsMatchLocation(PKM pk)

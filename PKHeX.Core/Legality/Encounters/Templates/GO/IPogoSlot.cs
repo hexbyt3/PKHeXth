@@ -55,7 +55,7 @@ public static class PogoSlotExtensions
                 return false;
             if (SpeciesCategory.IsSpecialPokemon(pk.Species))
                 return false;
-            if (slot.Type.IsShadow())
+            if (slot.Type.IsShadow)
                 return false;
         }
 

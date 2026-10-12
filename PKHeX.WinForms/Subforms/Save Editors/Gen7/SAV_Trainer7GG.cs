@@ -67,7 +67,7 @@ public partial class SAV_Trainer7GG : Form
     {
         // Get Data
         TB_OTName.Text = SAV.OT;
-        TB_RivalName.Text = SAV.Blocks.Misc.Rival;
+        TB_RivalName.Text = SAV.Blocks.Misc.RivalName;
         CB_Language.SelectedValue = SAV.Language;
         MT_Money.Text = SAV.Blocks.Misc.Money.ToString();
 
@@ -115,7 +115,7 @@ public partial class SAV_Trainer7GG : Form
         SAV.Language = WinFormsUtil.GetIndex(CB_Language);
 
         SAV.OT = TB_OTName.Text;
-        SAV.Blocks.Misc.Rival = TB_RivalName.Text;
+        SAV.Blocks.Misc.RivalName = TB_RivalName.Text;
 
         // Copy Position
         if (GB_Map.Enabled && MapUpdated)

@@ -57,71 +57,74 @@ public enum GlobalLinkPromotionLanguage : byte
 
 public static class GlobalLinkPromotionExtensions
 {
-    public static GlobalLinkPromotionLanguage GetLanguages(this GlobalLinkPromotion promotion) => promotion switch
+    extension(GlobalLinkPromotion promotion)
     {
-        StartersKanto => NotInt,
-        Croagunk1 => NotInt,
-        Croagunk2 => International,
-        Arceus => NotKor,
-        StartersHoenn => Japanese,
-        Rayquaza => Korean,
-        Blissey => NotInt,
-        Pikachu => NotKor,
-        Jumpluff => Korean,
-        MonkeyUnova => Japanese,
-        StartersSinnoh2 => International,
-        Gothorita2 => Japanese,
+        public GlobalLinkPromotionLanguage GetLanguages() => promotion switch
+        {
+            StartersKanto => NotInt,
+            Croagunk1 => NotInt,
+            Croagunk2 => International,
+            Arceus => NotKor,
+            StartersHoenn => Japanese,
+            Rayquaza => Korean,
+            Blissey => NotInt,
+            Pikachu => NotKor,
+            Jumpluff => Korean,
+            MonkeyUnova => Japanese,
+            StartersSinnoh2 => International,
+            Gothorita2 => Japanese,
 
-        Dragonite1 => NotInt,
-        Dragonite2 => International,
-        Scizor => International,
-        Garchomp => International,
-        Tyranitar => International,
-        Metagross => International,
-        _ => All,
-    };
+            Dragonite1 => NotInt,
+            Dragonite2 => International,
+            Scizor => International,
+            Garchomp => International,
+            Tyranitar => International,
+            Metagross => International,
+            _ => All,
+        };
 
-    public static LanguageID GetSafeLanguage(this GlobalLinkPromotion promotion, LanguageID prefer)
-    {
-        if (promotion is NotPromotion)
+        public LanguageID GetSafeLanguage(LanguageID prefer)
+        {
+            if (promotion is NotPromotion)
+                return Language.GetSafeLanguage456(prefer);
+
+            // Promotions can be language-locked.
+            var restrict = promotion.GetLanguages();
+            if (restrict == All)
+                return Language.GetSafeLanguage456(prefer);
+
+            // Need to restrict to the allowed languages.
+            if (restrict == Japanese)
+                return LanguageID.Japanese;
+            if (restrict == Korean)
+                return LanguageID.Korean;
+            if (restrict == NotKor && prefer == LanguageID.Korean)
+                return LanguageID.Japanese;
+            if (restrict == NotInt)
+                return prefer == LanguageID.Korean ? prefer : LanguageID.Japanese;
+
+            // International language only.
+            if (prefer is LanguageID.Japanese or LanguageID.Korean)
+                return LanguageID.English;
             return Language.GetSafeLanguage456(prefer);
+        }
 
-        // Promotions can be language-locked.
-        var restrict = promotion.GetLanguages();
-        if (restrict == All)
-            return Language.GetSafeLanguage456(prefer);
+        public bool CanBeReceivedBy(LanguageID language)
+        {
+            if (promotion is NotPromotion)
+                return true;
 
-        // Need to restrict to the allowed languages.
-        if (restrict == Japanese)
-            return LanguageID.Japanese;
-        if (restrict == Korean)
-            return LanguageID.Korean;
-        if (restrict == NotKor && prefer == LanguageID.Korean)
-            return LanguageID.Japanese;
-        if (restrict == NotInt)
-            return (prefer == LanguageID.Korean ? prefer : LanguageID.Japanese);
+            var restrict = promotion.GetLanguages();
+            if (restrict is All)
+                return true;
 
-        // International language only.
-        if (prefer is LanguageID.Japanese or LanguageID.Korean)
-            return LanguageID.English;
-        return Language.GetSafeLanguage456(prefer);
-    }
+            if (language is LanguageID.Japanese)
+                return restrict.HasFlag(Japanese);
+            if (language is LanguageID.Korean)
+                return restrict.HasFlag(Korean);
 
-    public static bool CanBeReceivedBy(this GlobalLinkPromotion promotion, LanguageID language)
-    {
-        if (promotion is NotPromotion)
-            return true;
-
-        var restrict = promotion.GetLanguages();
-        if (restrict is All)
-            return true;
-
-        if (language is LanguageID.Japanese)
-            return restrict.HasFlag(Japanese);
-        if (language is LanguageID.Korean)
-            return restrict.HasFlag(Korean);
-
-        // Only International languages remain.
-        return restrict.HasFlag(International);
+            // Only International languages remain.
+            return restrict.HasFlag(International);
+        }
     }
 }

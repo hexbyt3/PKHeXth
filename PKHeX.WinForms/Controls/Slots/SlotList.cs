@@ -26,6 +26,7 @@ public partial class SlotList : UserControl, ISlotViewer<PictureBox>
     private List<SlotInfoMisc> SlotOffsets = [];
     public int SlotCount { get; private set; }
     public SaveFile SAV { get; set; } = null!;
+    public void ApplyNewFilter(Func<PKM, bool>? filter, bool reload = true) { }
     public bool FlagIllegal { get; set; }
 
     public SlotList()

@@ -16,10 +16,10 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
     GameVersion IVersion.Version => GameVersion.ZA;
     public EntityContext Context => EntityContext.Gen9a;
     public bool IsEgg => false;
-    public AbilityPermission Ability => IsAlpha ? AbilityPermission.Any12H : AbilityPermission.Any12;
+    public AbilityPermission Ability => AbilityPermission.Any12;
     public Ball FixedBall => Ball.None;
     public bool IsShiny => false;
-    public ushort EggLocation => 0;
+    ushort ILocation.EggLocation => 0;
     public bool IsRandomUnspecificForm => Form >= EncounterUtil.FormDynamic;
 
     public string Name => "Wild Encounter";
@@ -79,12 +79,12 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
     private void SetMoves(PA9 pk, PersonalInfo9ZA pi, byte level)
     {
         var (learn, plus) = LearnSource9ZA.GetLearnsetAndPlus(Species, Form);
-        PlusRecordApplicator.SetPlusFlagsEncounter(pk, pi, plus, level);
+        pk.SetPlusFlagsEncounter(pi, plus, level);
 
         Span<ushort> moves = stackalloc ushort[4];
         learn.SetEncounterMovesBackwards(level, moves, sameDescend: false);
         if (pk.IsAlpha)
-            PlusRecordApplicator.SetPlusFlagsSpecific(pk, pi, moves[0] = pi.AlphaMove);
+            pk.SetPlusFlagsSpecific(pi, moves[0] = pi.AlphaMove);
         pk.SetMoves(moves);
     }
 
@@ -100,11 +100,6 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
             return false;
         if (pk is IAlphaReadOnly a && a.IsAlpha != IsAlpha)
             return false;
-
-        // For Alpha encounters, allow pre-evolution slots to match evolved Pokemon
-        // This allows Pokemon that evolved from a pre-evolution encounter to match properly
-        // The check for overlapping level ranges is handled by encounter priority during search
-
         return true;
     }
 
@@ -117,20 +112,8 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
 
     public EncounterMatchRating GetMatchRating(PKM pk)
     {
-        if (IsAlpha && pk is IPlusRecord pa9 && pk.PersonalInfo is IPermitPlus p)
-        {
-            var alphaMove = PersonalTable.ZA[Species, Form].AlphaMove;
-            if (!pa9.GetMovePlusFlag(p.PlusMoveIndexes.IndexOf(alphaMove)))
-            {
-                // Pre-evo slot with overlapping level range: flag would be set on capture, so missing = not the real source.
-                if (pk.Species != Species)
-                    return EncounterMatchRating.DeferredErrors;
-
-                // Same species: tolerate a cleared flag only if the alpha move was also forgotten.
-                if (pk.Move1 == alphaMove || pk.Move2 == alphaMove || pk.Move3 == alphaMove || pk.Move4 == alphaMove)
-                    return EncounterMatchRating.DeferredErrors;
-            }
-        }
+        if (IsAlpha && pk is IPlusRecord pa9 && pk.PersonalInfo is IPermitPlus p && !pa9.GetMovePlusFlag(p.PlusMoveIndexes.IndexOf(PersonalTable.ZA[Species, Form].AlphaMove)))
+            return EncounterMatchRating.DeferredErrors;
         if (Shiny is Shiny.Never && pk.IsShiny) // Some encounters are shiny locked until a sub-quest is completed.
             return EncounterMatchRating.DeferredErrors;
 
@@ -138,8 +121,10 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
             return EncounterMatchRating.DeferredErrors;
 
         var pidiv = TryGetSeed(pk, out _);
-        if (pidiv is SeedCorrelationResult.Invalid) // Only reject Invalid, allow Ignore
+        if (pidiv is SeedCorrelationResult.Invalid)
             return EncounterMatchRating.DeferredErrors;
+        if (pidiv is SeedCorrelationResult.Ignore)
+            return EncounterMatchRating.Deferred; // might be a better match with another template
 
         return EncounterMatchRating.Match;
     }
@@ -165,9 +150,7 @@ public sealed record EncounterSlot9a(EncounterArea9a Parent, ushort Species, byt
         param = param with { RollCount = rollCount };
         if (param.TryGetSeed(pk, out seed))
             return SeedCorrelationResult.Success;
-        // For PLZA, seed correlation is unreliable due to cryptographic RNG and ability randomness
-        // Return Ignore instead of Invalid to allow encounters to match
-        return SeedCorrelationResult.Ignore;
+        return SeedCorrelationResult.Invalid;
     }
 
     public LumioseCorrelation Correlation => IsAlpha ? LumioseCorrelation.PreApplyIVs : LumioseCorrelation.Normal;

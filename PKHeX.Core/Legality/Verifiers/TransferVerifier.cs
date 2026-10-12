@@ -47,20 +47,11 @@ public sealed class TransferVerifier : Verifier
             var pi = data.PersonalInfo;
             var growth = pi.EXPGrowth;
             var nature = pk.Nature;
-            bool valid = VerifyVCNature(growth, nature);
+            bool valid = Experience.IsValidNatureMetLevel2(growth, nature);
             if (!valid)
                 data.AddLine(GetInvalid(TransferNature));
         }
     }
-
-    private static bool VerifyVCNature(byte growth, Nature nature) => growth switch
-    {
-        // exp % 25 with a limited amount of EXP does not allow for every nature
-        0 => (0x01FFFF03u & (1u << (byte)nature)) != 0, // MediumFast -- Can't be Brave, Adamant, Naughty, Bold, Docile, or Relaxed
-        4 => (0x001FFFC0u & (1u << (byte)nature)) != 0, // Fast -- Can't be Gentle, Sassy, Careful, Quirky, Hardy, Lonely, Brave, Adamant, Naughty, or Bold
-        5 => (0x01FFFCFFu & (1u << (byte)nature)) != 0, // Slow -- Can't be Impish or Lax
-        _ => true,
-    };
 
     private static void VerifyVCShinyXorIfShiny(LegalityAnalysis data)
     {
@@ -189,17 +180,16 @@ public sealed class TransferVerifier : Verifier
     public void VerifyVCEncounter(PKM pk, IEncounterTemplate original, EncounterTransfer7 transfer, LegalityAnalysis data)
     {
         if (pk.MetLocation != transfer.Location)
-            data.AddLine(GetInvalid(TransferMetLocation));
+            data.AddLine(GetInvalid(TransferMetLocation, transfer.Location));
 
-        var expectEgg = pk is PB8 ? Locations.Default8bNone : transfer.EggLocation;
-        if (pk.EggLocation != expectEgg)
+        if (!transfer.IsMatchEggLocation(pk))
             data.AddLine(GetInvalid(EggLocationNone));
 
         // Flag Moves that cannot be transferred
-        if (original is EncounterStatic2 { DizzyPunchEgg: true}) // Dizzy Punch Gifts
-            FlagIncompatibleTransferMove(pk, data.Info.Moves, 146, 2); // can't have Dizzy Punch at all
+        if (original is EncounterStatic2 { IsDizzyPunchEgg: true }) // Dizzy Punch Gifts
+            FlagIncompatibleTransferMove(pk, data.Info.Moves, 146, EntityContext.Gen2); // can't have Dizzy Punch at all
 
-        bool checkShiny = pk.VC2 || original.Generation == 2 || MoveInfo.IsAnyFromGeneration(2, data.Info.Moves);
+        bool checkShiny = pk.VC2 || original.Generation == 2 || MoveInfo.IsAnyFromGeneration(EntityContext.Gen2, data.Info.Moves);
         if (!checkShiny)
             return;
 
@@ -217,13 +207,13 @@ public sealed class TransferVerifier : Verifier
         }
     }
 
-    private static void FlagIncompatibleTransferMove(PKM pk, Span<MoveResult> parse, ushort move, byte generation)
+    private static void FlagIncompatibleTransferMove(PKM pk, Span<MoveResult> parse, ushort move, EntityContext context)
     {
         int index = pk.GetMoveIndex(move);
         if (index < 0)
             return; // doesn't have move
 
-        if (parse[index].Generation == generation) // not obtained from a future gen
+        if (parse[index].Context == context) // not obtained from a future gen
             parse[index] = MoveResult.Unobtainable(0);
     }
 }

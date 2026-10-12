@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
@@ -14,7 +13,6 @@ public static class Encounters8Nest
     /// <summary>
     /// Get the locations for a given nest index.
     /// </summary>
-    /// <returns></returns>
     public static ReadOnlySpan<byte> GetNestLocations(byte nestIndex) => nestIndex switch
     {
         000 => [144, 134, 122],      // 000 : Stony Wilderness, South Lake Miloch, Rolling Fields
@@ -278,26 +276,19 @@ public static class Encounters8Nest
     private const AbilityPermission A3 = AbilityPermission.Any12;
   //private const AbilityPermission A4 = AbilityPermission.Any12H;
 
-    public const int SharedNest = 162;
-    public const int Watchtower = 126;
-    public const int MaxLair = 244;
+    internal const int SharedNest = 162;
+    internal const int Watchtower = 126;
+    internal const int MaxLair = 244;
 
-    internal static readonly EncounterStatic8N[] Nest_SWArray = GetBase("sw_nest", SW);
-    public static IReadOnlyList<EncounterStatic8N> Nest_SW => Nest_SWArray;
+    internal static readonly EncounterStatic8N[] Nest_SW = GetBase("sw_nest", SW);
+    internal static readonly EncounterStatic8N[] Nest_SH = GetBase("sh_nest", SH);
 
-    internal static readonly EncounterStatic8N[] Nest_SHArray = GetBase("sh_nest", SH);
-    public static IReadOnlyList<EncounterStatic8N> Nest_SH => Nest_SHArray;
+    internal static readonly EncounterStatic8ND[] Dist_SW = GetDist("sw_dist", SW);
+    internal static readonly EncounterStatic8ND[] Dist_SH = GetDist("sh_dist", SH);
 
-    internal static readonly EncounterStatic8ND[] Dist_SWArray = GetDist("sw_dist", SW);
-    public static IReadOnlyList<EncounterStatic8ND> Dist_SW => Dist_SWArray;
+    internal static readonly EncounterStatic8U[] DynAdv_SWSH = GetUnderground();
 
-    internal static readonly EncounterStatic8ND[] Dist_SHArray = GetDist("sh_dist", SH);
-    public static IReadOnlyList<EncounterStatic8ND> Dist_SH => Dist_SHArray;
-
-    internal static readonly EncounterStatic8U[] DynAdv_SWSHArray = GetUnderground();
-    public static IReadOnlyList<EncounterStatic8U> DynAdv_SWSH => DynAdv_SWSHArray;
-
-    internal static readonly EncounterStatic8NC[] Crystal_SWSHArray =
+    internal static readonly EncounterStatic8NC[] Crystal_SWSH =
     [
         new(SWSH) { Species = 782, Level = 16, Ability = A3, IVs = new(31,31,31,-1,-1,-1), DynamaxLevel = 2, Moves = new(033,029,525,043) }, // ★And458 Jangmo-o
         new(SWSH) { Species = 246, Level = 16, Ability = A3, IVs = new(31,31,31,-1,-1,-1), DynamaxLevel = 2, Moves = new(033,157,371,044) }, // ★And15 Larvitar
@@ -313,7 +304,6 @@ public static class Encounters8Nest
         new(SWSH) { Species = 025, Level = 25, Ability = A2, IVs = new(31,31,31,-1,-1,-1), DynamaxLevel = 5, Moves = new(606,273,104,085), CanGigantamax = true }, // ★Sgr6746 Gigantamax Pikachu
         new(SWSH) { Species = 133, Level = 25, Ability = A2, IVs = new(31,31,31,-1,-1,-1), DynamaxLevel = 5, Moves = new(606,273,038,129), CanGigantamax = true }, // ★Sgr7194 Gigantamax Eevee
     ];
-    public static IReadOnlyList<EncounterStatic8NC> Crystal_SWSH => Crystal_SWSHArray;
 
     private static EncounterStatic8N[] GetBase([Length(2, 2), ConstantExpected] string name, [ConstantExpected] GameVersion version)
     {

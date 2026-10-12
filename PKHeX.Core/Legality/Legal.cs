@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PKHeX.Core;
 
@@ -19,7 +20,8 @@ public static class Legal
 
     internal const int MaxSpeciesID_3 = 386;
     internal const int MaxMoveID_3 = 354;
-    internal const int MaxItemID_3 = 374;
+    internal const int MaxItemID_3_RS = 346;
+    internal const int MaxItemID_3_FRLG = 374;
     internal const int MaxItemID_3_E = 376;
     internal const int MaxItemID_3_COLO = 547;
     internal const int MaxItemID_3_XD = 593;
@@ -302,4 +304,40 @@ public static class Legal
         if (IVs.SPD != pk.IV_SPD) return false;
         return true;
     }
+
+    /// <summary>
+    /// For a species with a potentially valid FR/LG origin encounter, flag if not permitted.
+    /// </summary>
+    public static bool IsForeignFRLG(ushort species) => IsForeign(ForeignFRLG, species, ShiftFRLG);
+
+    private static bool IsForeign(ReadOnlySpan<byte> bitSet, int species, [ConstantExpected] int shift)
+    {
+        species -= shift;
+        var offset = species >> 3;
+        if ((uint)offset >= bitSet.Length)
+            return false;
+
+        var bit = species & 7;
+        if ((bitSet[offset] & (1 << bit)) != 0)
+            return true;
+        return false;
+    }
+
+    private const ushort ShiftFRLG = 151; // First unavailable Species (Mew)
+
+    /// <summary>
+    /// Bitset representing species that are considered unobtainable in FR/LG.
+    /// Includes foreign transfers and time-of-day evolutions.
+    /// First species is Mew (151), last is Deoxys (386).
+    /// </summary>
+    /// <remarks>
+    /// Source: https://www.serebii.net/fireredleafgreen/unobtainable.shtml
+    /// </remarks>
+    private static ReadOnlySpan<byte> ForeignFRLG =>
+    [
+        0xFF, 0x33, 0x18, 0x60, 0x04, 0x63, 0x50, 0x0D,
+        0x84, 0x40, 0x00, 0x04, 0xF0, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xFF, 0xF7, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xFF, 0xFD, 0xFF, 0xFF, 0x07,
+    ];
 }

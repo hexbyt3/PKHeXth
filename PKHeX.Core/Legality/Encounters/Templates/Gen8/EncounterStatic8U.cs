@@ -87,26 +87,11 @@ public sealed record EncounterStatic8U : EncounterStatic8Nest<EncounterStatic8U>
             pk.PID = ShinyUtil.GetShinyPID(pk.TID16, pk.SID16, pk.PID, ShinyXor);
     }
 
-    public override void GenerateSeed64(PKM pk, ITrainerInfo tr, ulong seed)
-    {
-        var pk8 = (PK8)pk;
-        var pi = PersonalTable.SWSH[Species, Form];
-        var param = GetParam(pi);
-        Span<int> iv = stackalloc int[6];
-        var criteria = EncounterCriteria.Unrestricted;
-        RaidRNG.TryApply(pk8, seed, iv, param, criteria);
-    }
-
     private GenerateParam8 GetParam(PersonalInfo8SWSH pi)
     {
         var ratio = RemapGenderToParam(Gender, pi);
         return new GenerateParam8(Species, ratio, FlawlessIVCount, Ability, ShinyMethod, Nature.Random, IVs);
     }
-
-    // Seed verification must also use forceNoShiny to match the Shiny.Never generation behavior.
-    // Without this, seeds where the raw PID is shiny relative to the generated trID would produce
-    // a PID mismatch between generation and verification.
-    protected override bool IsMatchSeed(PKM pk, ulong seed) => Verify(pk, seed, forceNoShiny: true);
 
     // no downleveling, unlike all other raids
     protected override bool IsMatchLevel(PKM pk) => pk.MetLevel == Level;

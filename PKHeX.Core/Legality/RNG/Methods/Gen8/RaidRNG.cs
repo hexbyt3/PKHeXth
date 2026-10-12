@@ -114,7 +114,7 @@ public static class RaidRNG
                 break;
         }
 
-        var nature = param.Nature != Nature.Random ? param.Nature
+        var nature = param.Nature.IsFixed ? param.Nature
             : param.Species == (int)Species.Toxtricity
                 ? ToxtricityUtil.GetRandomNature(ref rng, pk.Form)
                 : (Nature)rng.NextInt(25);
@@ -139,9 +139,13 @@ public static class RaidRNG
                 if (s.WeightScalar != weight)
                 {
                     if (height == 0 && s.WeightScalar == 0 && HomeQuirks.HasEnteredSetZeroScale(pk))
-                    { } // OK
+                    {
+                        // OK
+                    }
                     else
+                    {
                         return false;
+                    }
                 }
             }
         }
@@ -244,14 +248,14 @@ public static class RaidRNG
             return false;
         pk.Gender = gender;
 
-        var nature = param.Nature != Nature.Random ? param.Nature
+        var nature = param.Nature.IsFixed ? param.Nature
             : param.Species == (int)Species.Toxtricity
                 ? ToxtricityUtil.GetRandomNature(ref rng, pk.Form)
                 : (Nature)rng.NextInt(25);
         if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(nature))
             return false;
 
-        pk.Nature = pk.StatNature = nature;
+        pk.Nature = pk.StatAlignment = nature;
 
         var height = rng.NextInt(0x81) + rng.NextInt(0x80);
         var weight = rng.NextInt(0x81) + rng.NextInt(0x80);

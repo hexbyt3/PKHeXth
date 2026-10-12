@@ -14,7 +14,7 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
     public bool IsVirtualConsole => State.Exportable && Metadata.FileName is { } s && s.StartsWith("sav", StringComparison.Ordinal) && s.Contains(".dat"); // default to GB-Era for non-exportable
 
     public int SaveRevision => Japanese ? 0 : 1;
-    public string SaveRevisionString => (Japanese ? "J" : "U") + (IsVirtualConsole ? "VC" : "GB");
+    public string SaveRevisionString => (Japanese ? "-J" : "-U") + (IsVirtualConsole ? " [VC]" : " [GB]");
     public bool Japanese { get; }
     public bool Korean => false;
     public override int Language { get; set; }
@@ -216,8 +216,8 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
     // Configuration
     protected override SAV1 CloneInternal() => new(GetFinalData(), (LanguageID)Language, Version);
 
-    protected override int SIZE_STORED => Japanese ? PokeCrypto.SIZE_1JLIST : PokeCrypto.SIZE_1ULIST;
-    protected override int SIZE_PARTY => SIZE_STORED;
+    public override int SIZE_STORED => Japanese ? PokeCrypto.SIZE_1JLIST : PokeCrypto.SIZE_1ULIST;
+    public override int SIZE_PARTY => SIZE_STORED;
     private int SIZE_BOX_AS_SINGLES => BoxSlotCount * SIZE_STORED;
     private int SIZE_BOX_LIST => (((StringLength * 2) + PokeCrypto.SIZE_1STORED + 1) * BoxSlotCount) + 2;
     private int SIZE_PARTY_LIST => (((StringLength * 2) + PokeCrypto.SIZE_1PARTY + 1) * 6) + 2;
@@ -293,13 +293,13 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
 
     public override ushort SID16 { get => 0; set { } }
 
-    public string Rival
+    public string RivalName
     {
         get => GetString(Data.Slice(Offsets.Rival, MaxStringLengthTrainer));
         set => SetString(Data.Slice(Offsets.Rival, MaxStringLengthTrainer), value, MaxStringLengthTrainer, StringConverterOption.Clear50);
     }
 
-    public Span<byte> RivalTrash { get => Data.Slice(Offsets.Rival, StringLength); set { if (value.Length == StringLength) value.CopyTo(Data[Offsets.Rival..]); } }
+    public Span<byte> RivalNameTrash { get => Data.Slice(Offsets.Rival, StringLength); set { if (value.Length == StringLength) value.CopyTo(Data[Offsets.Rival..]); } }
 
     public byte RivalStarter { get => Data[Offsets.Starter - 2]; set => Data[Offsets.Starter - 2] = value; }
     public byte Starter { get => Data[Offsets.Starter]; set => Data[Offsets.Starter] = value; }
@@ -421,19 +421,7 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
         }
     }
 
-    public override IReadOnlyList<InventoryPouch> Inventory
-    {
-        get
-        {
-            InventoryPouch[] pouch =
-            [
-                new InventoryPouchGB(InventoryType.Items, ItemStorage1.Instance, 99, Offsets.Items, 20),
-                new InventoryPouchGB(InventoryType.PCItems, ItemStorage1.Instance, 99, Offsets.PCItems, 50),
-            ];
-            return pouch.LoadAll(Data);
-        }
-        set => value.SaveAll(Data);
-    }
+    public override PlayerBag1 Inventory => new(this, Offsets);
 
     public int DaycareSlotCount => 1;
 
@@ -484,17 +472,14 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
         return BoxDetailNameExtensions.GetDefaultBoxName(box);
     }
 
-    protected override PK1 GetPKM(byte[] data)
+    protected override PK1 GetPKM(Memory<byte> data)
     {
         if (data.Length == SIZE_STORED)
-            return PokeList1.ReadFromList(data, StringLength);
+            return PokeList1.ReadFromList(data.Span, StringLength);
         return new(data);
     }
 
-    protected override byte[] DecryptPKM(byte[] data)
-    {
-        return data;
-    }
+    protected override void DecryptPKM(Span<byte> data) { }
 
     // Pokédex
     protected override void SetDex(PKM pk)
@@ -537,20 +522,12 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
         SetFlag(region + ofs, bit & 7, value);
     }
 
-    public override void WriteSlotFormatStored(PKM pk, Span<byte> data)
+    protected override void WriteSlotStored(PKM pk, Span<byte> data)
     {
         // pk that have never been boxed have yet to save the 'current level' for box indication
         // set this value at this time
         ((PK1)pk).Stat_LevelBox = pk.CurrentLevel;
-        base.WriteSlotFormatStored(pk, data);
-    }
-
-    public override void WriteBoxSlot(PKM pk, Span<byte> data)
-    {
-        // pk that have never been boxed have yet to save the 'current level' for box indication
-        // set this value at this time
-        ((PK1)pk).Stat_LevelBox = pk.CurrentLevel;
-        base.WriteBoxSlot(pk, data);
+        base.WriteSlotStored(pk, data);
     }
 
     private const int SpawnFlagCount = 0xF0;

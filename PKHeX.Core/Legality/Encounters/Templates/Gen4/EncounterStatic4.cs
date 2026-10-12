@@ -135,7 +135,7 @@ public sealed record EncounterStatic4(GameVersion Version)
         {
             var seed = LCRNG.Prev2(s); // Unwind the RNG to get the real origin seed for the PID/IV
             var pid = ClassicEraRNG.GetSequentialPID(seed);
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
 
             var gender = EntityGender.GetFromPIDAndRatio(pid, gr);
@@ -167,7 +167,7 @@ public sealed record EncounterStatic4(GameVersion Version)
             if (criteria.Shiny.IsShiny() != shiny)
                 continue;
 
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
 
             var gender = EntityGender.GetFromPIDAndRatio(pid, gr);
@@ -206,7 +206,7 @@ public sealed record EncounterStatic4(GameVersion Version)
             var shiny = ShinyUtil.GetIsShiny3(id32, pid);
             if (criteria.Shiny.IsShiny() != shiny)
                 continue;
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
 
             var gender = EntityGender.GetFromPIDAndRatio(pid, gr);
@@ -234,7 +234,7 @@ public sealed record EncounterStatic4(GameVersion Version)
         while (true)
         {
             var pid = ClassicEraRNG.GetChainShinyPID(ref seed, id32);
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
 
             var gender = EntityGender.GetFromPIDAndRatio(pid, gr);
@@ -271,7 +271,7 @@ public sealed record EncounterStatic4(GameVersion Version)
 
     public bool IsMatchExact(PKM pk, EvoCriteria evo)
     {
-        if (!IsMatchEggLocation(pk))
+        if (!IsMatchEggLocationInternal(pk))
             return false;
         if (!IsMatchLocation(pk))
             return false;
@@ -292,7 +292,7 @@ public sealed record EncounterStatic4(GameVersion Version)
 
         var met = pk4.MetLocation;
         if (IsEgg)
-            return true;
+            return !pk.IsEgg || (met == Location || met == Locations.LinkTrade4);
         if (!IsRoaming)
             return met == Location;
 
@@ -304,13 +304,10 @@ public sealed record EncounterStatic4(GameVersion Version)
         };
     }
 
-    private bool IsMatchEggLocation(PKM pk)
+    private bool IsMatchEggLocationInternal(PKM pk)
     {
         if (!IsEgg)
-        {
-            var expect = pk is PB8 ? Locations.Default8bNone : EggLocation;
-            return pk.EggLocation == expect;
-        }
+            return this.IsMatchEggLocation(pk);
 
         var eggLoc = pk.EggLocation;
         // Transferring 4->5 clears Pt/HG/SS location value and keeps Faraway Place
@@ -326,11 +323,7 @@ public sealed record EncounterStatic4(GameVersion Version)
             return eggLoc == EggLocation || eggLoc == Locations.LinkTrade4;
 
         // Unhatched:
-        if (eggLoc != EggLocation)
-            return false;
-        if (pk4.MetLocation is not (0 or Locations.LinkTrade4))
-            return false;
-        return true;
+        return eggLoc == EggLocation;
     }
 
     private static bool IsMatchLocationGrass(ushort location, ushort met) => location switch

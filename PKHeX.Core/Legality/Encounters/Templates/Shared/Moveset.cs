@@ -40,12 +40,6 @@ public readonly record struct Moveset(ushort Move1, ushort Move2 = 0, ushort Mov
     public bool AnyAbove(ushort max) => Move1 > max || Move2 > max || Move3 > max || Move4 > max;
 
     /// <summary>
-    /// Returns the moveset as an array of four move IDs.
-    /// </summary>
-    /// <returns>An array containing the four move IDs.</returns>
-    public ushort[] ToArray() => [Move1, Move2, Move3, Move4];
-
-    /// <summary>
     /// Gets a read-only span view of the moveset's four move IDs.
     /// </summary>
     public ReadOnlySpan<ushort> AsSpan()
@@ -163,5 +157,25 @@ public readonly record struct Moveset(ushort Move1, ushort Move2 = 0, ushort Mov
                 flags |= 1 << i;
         }
         return flags;
+    }
+
+    /// <summary>
+    /// Sets all specified move indexes in the provided span to true.
+    /// </summary>
+    /// <param name="result">Result to set indexes to <c>true</c> for.</param>
+    public void FlagMoves(Span<bool> result)
+    {
+        result[Move1] = true;
+        result[Move2] = true;
+        result[Move3] = true;
+        result[Move4] = true;
+    }
+
+    public void FlagMoves(Span<IndicatedSourceType> result, IndicatedSourceType value)
+    {
+        result[Move1] |= value;
+        result[Move2] |= value;
+        result[Move3] |= value;
+        result[Move4] |= value;
     }
 }

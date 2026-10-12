@@ -20,7 +20,7 @@ public static class EffortValues
     /// <summary> The leftover EVs if two stats are <see cref="Max252"/>. </summary>
     public const byte LeftoverDual252 = 6;
     /// <summary> Vitamin Max for consideration in Gen3 & Gen4. </summary>
-    public const ushort MaxVitamins34 = 100;
+    public const byte MaxVitamins34 = 100;
 
     /// <summary> Single vitamin in Gen1/2 adds 2560 EVs to a stat. </summary>
     public const ushort VitaminBoost12 = 2560;
@@ -161,8 +161,8 @@ public static class EffortValues
     /// <summary>
     /// Converts mainline EVs (0-252) to Pokémon Champions EVs (0-32) by dividing by 8.
     /// </summary>
-    /// <param name="champion">Champion's EVs (0-32)</param>
     /// <param name="mainline">Mainline EVs (0-252)</param>
+    /// <param name="champion">Champion's EVs (0-32)</param>
     public static void ConvertToChampions(ReadOnlySpan<int> mainline, Span<int> champion)
     {
         for (int i = 0; i < champion.Length; i++)
@@ -198,7 +198,7 @@ public static class EffortValues
 }
 
 /// <summary>
-/// Assessment of the total EVs, compared to the maximum allowed.
+/// Assessment of the total EVs (Gen3+), compared to the maximum allowed.
 /// </summary>
 public enum EffortValueGrade
 {

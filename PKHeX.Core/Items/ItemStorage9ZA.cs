@@ -122,8 +122,6 @@ public sealed class ItemStorage9ZA : IItemStorage
     public static ReadOnlySpan<ushort> Unreleased =>
     [
         0016, // Cherish Ball
-
-        0753, // Sceptilite
     ];
 
     public int GetMax(InventoryType type) => type switch

@@ -366,9 +366,7 @@ public sealed class WB7(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, IAw
 
     public bool IsHOMEGift => CardID >= 9000;
 
-    public override PB7 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria) => ConvertToPKM(tr, criteria, null);
-
-    public override PB7 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria, DateOnly? metDateOverride)
+    public override PB7 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria)
     {
         if (!IsEntity)
             throw new ArgumentException(nameof(IsEntity));
@@ -444,7 +442,7 @@ public sealed class WB7(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, IAw
             pk.SID16 = tr.SID16;
         }
 
-        pk.ReceivedDate = pk.MetDate = metDateOverride ?? Date ?? GetSuggestedDate();
+        pk.ReceivedDate = pk.MetDate = Date ?? GetSuggestedDate();
         pk.ReceivedTime = EncounterDate.GetTime();
         pk.IsNicknamed = GetIsNicknamed(redeemLanguage);
         pk.Nickname = pk.IsNicknamed ? GetNickname(redeemLanguage) : SpeciesName.GetSpeciesNameGeneration(Species, pk.Language, Generation);
@@ -612,7 +610,7 @@ public sealed class WB7(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, IAw
             if (OriginGame != 0 && (GameVersion)OriginGame != pk.Version) return false;
             if (EncryptionConstant != 0 && EncryptionConstant != pk.EncryptionConstant) return false;
 
-            if (!IsMatchEggLocation(pk)) return false;
+            if (!IsMatchEggLocationInternal(pk)) return false;
             if (!CanBeAnyLanguage() && !CanHaveLanguage(pk.Language))
                 return false;
         }
@@ -638,7 +636,7 @@ public sealed class WB7(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, IAw
         else
         {
             if (!Shiny.IsValid(pk)) return false;
-            if (!IsMatchEggLocation(pk)) return false;
+            if (!IsMatchEggLocationInternal(pk)) return false;
             if (Location != pk.MetLocation) return false;
         }
 

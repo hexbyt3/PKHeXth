@@ -64,7 +64,7 @@ public partial class FormArgument : UserControl
         CurrentForm = form;
         CurrentContext = context;
 
-        bool isPair = FormArgumentUtil.IsFormArgumentTypeDatePair(species, form);
+        bool isPair = FormArgumentUtil.IsFormArgumentTypeDateTriple(species, form);
         CurrentValue = isPair ? f.FormArgumentRemain : f.FormArgument;
 
         FieldsLoaded = true;

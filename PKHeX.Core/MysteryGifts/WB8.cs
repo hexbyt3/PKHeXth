@@ -208,7 +208,7 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
             {
                 if (value == RibbonByteNone)
                     return false; // end
-                if (((RibbonIndex)value).IsEncounterMark8())
+                if (((RibbonIndex)value).IsEncounterMark8)
                     return true;
             }
             return false;
@@ -395,9 +395,7 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
 
     public override GameVersion Version => OriginGame != 0 ? (GameVersion)OriginGame : GameVersion.BDSP;
 
-    public override PB8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria) => ConvertToPKM(tr, criteria, null);
-
-    public override PB8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria, DateOnly? metDateOverride)
+    public override PB8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria)
     {
         if (!IsEntity)
             throw new ArgumentException(nameof(IsEntity));
@@ -438,7 +436,7 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
             OriginalTrainerGender = OTGender < 2 ? OTGender : tr.Gender,
             HandlingTrainerName = hasOT ? tr.OT : string.Empty,
             HandlingTrainerGender = hasOT ? tr.Gender : default,
-            HandlingTrainerLanguage = (byte)(hasOT ? language : default),
+            HandlingTrainerLanguage = (byte)(hasOT ? language : 0),
             CurrentHandler = hasOT ? (byte)1 : (byte)0,
             OriginalTrainerFriendship = pi.BaseFriendship,
 
@@ -461,7 +459,7 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
             MetLocation = Location,
             EggLocation = EggLocation,
         };
-        if (EggLocation == 0)
+        if (EggLocation == 0) // HOME gifts need to be remapped to in-game. Nothing legitimately has a 0.
             pk.EggLocation = Locations.Default8bNone;
 
         pk.HealPP();
@@ -479,8 +477,7 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
             pk.SID16 = tr.SID16;
         }
 
-        var date = metDateOverride ??
-            (IsDateRestricted && this.GetDistributionWindow(out var dt) ? dt.GetGenerateDate() : EncounterDate.GetDateSwitch());
+        var date = IsDateRestricted && this.GetDistributionWindow(out var dt) ? dt.GetGenerateDate() : EncounterDate.GetDateSwitch();
         if (IsDateLockJapanese && language != (int)LanguageID.Japanese && date < new DateOnly(2022, 5, 20)) // 2022/05/18
             date = new DateOnly(2022, 5, 20); // Pick a better Start date that can be the language we're generating for.
 
@@ -507,7 +504,7 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
 
         if (IsScalarFixed)
         {
-            pk.HeightScalar = pk.WeightScalar = GetHomeScalar();
+            (pk.HeightScalar, pk.WeightScalar) = GetHomeScalars();
         }
         else
         {
@@ -528,11 +525,14 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
     /// <summary>
     ///  HOME Gift Manaphy is a special case where height/weight is fixed.
     /// </summary>
-    public bool IsScalarFixed => CardID is 9026;
+    public bool IsScalarFixed => CardID is (9015 or 9016 or 9017) or 9026;
 
-    private byte GetHomeScalar() => CardID switch
+    private (byte Height, byte Weight) GetHomeScalars() => CardID switch
     {
-        9026 => 128,
+        9015 => (147, 160), // Turtwig
+        9016 => (146, 063), // Chimchar
+        9017 => (061, 203), // Piplup
+        9026 => (128, 128), // Manaphy
         _ => throw new ArgumentException(),
     };
 
@@ -552,7 +552,7 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
     private void SetPINGA(PB8 pk, in EncounterCriteria criteria)
     {
         var pi = pk.PersonalInfo;
-        pk.Nature = pk.StatNature = criteria.GetNature((sbyte)Nature == -1 ? Nature.Random : Nature);
+        pk.Nature = pk.StatAlignment = criteria.GetNature((sbyte)Nature == -1 ? Nature.Random : Nature);
         pk.Gender = criteria.GetGender(Gender, pi);
         var av = GetAbilityIndex(criteria);
         pk.RefreshAbility(av);
@@ -677,7 +677,7 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
         else
         {
             if (!Shiny.IsValid(pk)) return false;
-            if (!IsMatchEggLocation(pk)) return false;
+            if (!IsMatchEggLocationInternal(pk)) return false;
             if (!IsMatchLocation(pk)) return false;
         }
 
@@ -689,10 +689,10 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
 
         if (IsScalarFixed)
         {
-            var scalar = GetHomeScalar();
-            if (pk is IScaledSize hw && (hw.HeightScalar != scalar || hw.WeightScalar != scalar))
+            var scalar = GetHomeScalars();
+            if (pk is IScaledSize hw && (hw.HeightScalar != scalar.Height || hw.WeightScalar != scalar.Weight))
                 return false;
-            if (pk is IScaledSize3 s && s.Scale != scalar)
+            if (pk is IScaledSize3 s && s.Scale != scalar.Height)
                 return false;
         }
 
@@ -705,7 +705,7 @@ public sealed class WB8(Memory<byte> raw) : DataMysteryGift(raw),
         return pk.PID == GetPID(pk, (ShinyType8)type);
     }
 
-    protected override bool IsMatchEggLocation(PKM pk)
+    protected override bool IsMatchEggLocationInternal(PKM pk)
     {
         var expect = pk is PB8 ? Locations.Default8bNone : 0;
         return pk.EggLocation == expect;

@@ -59,7 +59,6 @@ public static class MethodPokeSpot
     /// <returns><see langword="true"/> if both the PID and IV origin seeds are successfully retrieved; otherwise, <see langword="false"/>.</returns>
     public static bool TryGetOriginSeeds(PKM pk, EncounterSlot3XD slot, out uint pid, out uint ivs)
     {
-        pid = 0;
         ivs = 0;
         if (!TryGetOriginSeedPID(pk.PID, slot.SlotNumber, out pid))
             return false;
@@ -258,7 +257,7 @@ public static class MethodPokeSpot
                 continue;
             }
             var pid = GetPIDRegular(ref seed);
-            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature((Nature)(pid % 25)))
+            if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(pid))
                 continue;
             if (criteria.IsSpecifiedGender() && !criteria.IsSatisfiedGender(EntityGender.GetFromPIDAndRatio(pid, gender)))
                 continue;
@@ -296,7 +295,7 @@ public static class MethodPokeSpot
             var preIV = seed;
 
             var origin = XDRNG.Prev6(preIV);
-            if (!IsValidAnimation(origin, out origin, out _))
+            if (!IsValidAnimation(origin, out _, out _))
             {
                 seed = XDRNG.Next(seed); // avoid infinite loop
                 continue;

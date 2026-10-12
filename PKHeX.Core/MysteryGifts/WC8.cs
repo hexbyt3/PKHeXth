@@ -205,7 +205,7 @@ public sealed class WC8(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
             {
                 if (value == RibbonByteNone)
                     return false; // end
-                if (((RibbonIndex)value).IsEncounterMark8())
+                if (((RibbonIndex)value).IsEncounterMark8)
                     return true;
             }
 
@@ -395,9 +395,7 @@ public sealed class WC8(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
 
     public override GameVersion Version => OriginGame != 0 ? (GameVersion)OriginGame : GameVersion.SWSH;
 
-    public override PK8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria) => ConvertToPKM(tr, criteria, null);
-
-    public override PK8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria, DateOnly? metDateOverride)
+    public override PK8 ConvertToPKM(ITrainerInfo tr, EncounterCriteria criteria)
     {
         if (!IsEntity)
             throw new ArgumentException(nameof(IsEntity));
@@ -439,7 +437,7 @@ public sealed class WC8(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
             OriginalTrainerGender = OTGender < 2 ? OTGender : tr.Gender,
             HandlingTrainerName = hasOT ? tr.OT : string.Empty,
             HandlingTrainerGender = hasOT ? tr.Gender : default,
-            HandlingTrainerLanguage = (byte)(hasOT ? language : default),
+            HandlingTrainerLanguage = (byte)(hasOT ? language : 0),
             CurrentHandler = hasOT ? (byte)1 : (byte)0,
             OriginalTrainerFriendship = pi.BaseFriendship,
 
@@ -488,7 +486,7 @@ public sealed class WC8(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
         if (pk.Species == (int)Core.Species.Meowstic)
             pk.Form = (byte)(pk.Gender & 1);
 
-        var date = metDateOverride ?? GetSuggestedDate();
+        var date = GetSuggestedDate();
         pk.MetDate = date;
 
         // Prior to 3.0.0, HOME would set the Encryption Constant exactly and not give a random value if it was 0.
@@ -570,7 +568,7 @@ public sealed class WC8(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
     private void SetPINGA(PK8 pk, in EncounterCriteria criteria)
     {
         var pi = pk.PersonalInfo;
-        pk.Nature = pk.StatNature = criteria.GetNature((sbyte)Nature == -1 ? Nature.Random : Nature);
+        pk.Nature = pk.StatAlignment = criteria.GetNature((sbyte)Nature == -1 ? Nature.Random : Nature);
         pk.Gender = criteria.GetGender(Gender, pi);
         var av = GetAbilityIndex(criteria);
         pk.RefreshAbility(av);
@@ -711,7 +709,7 @@ public sealed class WC8(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
         else
         {
             if (!shinyType.IsValid(pk)) return false;
-            if (!IsMatchEggLocation(pk)) return false;
+            if (!IsMatchEggLocationInternal(pk)) return false;
             if (Location != pk.MetLocation) return false;
         }
 

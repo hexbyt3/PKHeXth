@@ -4,28 +4,31 @@ namespace PKHeX.Core;
 
 public static partial class Extensions
 {
-    public static List<PKM> GetAllPKM(this SaveFile sav)
+    extension(SaveFile sav)
     {
-        var result = new List<PKM>();
-        if (sav.HasBox)
-            result.AddRange(sav.BoxData);
-        if (sav.HasParty)
-            result.AddRange(sav.PartyData);
+        public List<PKM> GetAllPKM()
+        {
+            var result = new List<PKM>();
+            if (sav.HasBox)
+                result.AddRange(sav.BoxData);
+            if (sav.HasParty)
+                result.AddRange(sav.PartyData);
 
-        var extra = sav.GetExtraPKM();
-        result.AddRange(extra);
-        result.RemoveAll(z => z.Species == 0);
-        return result;
-    }
+            var extra = sav.GetExtraPKM();
+            result.AddRange(extra);
+            result.RemoveAll(z => z.Species == 0);
+            return result;
+        }
 
-    public static PKM[] GetExtraPKM(this SaveFile sav) => sav.GetExtraPKM(sav.GetExtraSlots());
+        public PKM[] GetExtraPKM() => sav.GetExtraPKM(sav.GetExtraSlots());
 
-    public static PKM[] GetExtraPKM(this SaveFile sav, IReadOnlyList<SlotInfoMisc> slots)
-    {
-        var arr = new PKM[slots.Count];
-        for (int i = 0; i < slots.Count; i++)
-            arr[i] = slots[i].Read(sav);
-        return arr;
+        public PKM[] GetExtraPKM(IReadOnlyList<SlotInfoMisc> slots)
+        {
+            var arr = new PKM[slots.Count];
+            for (int i = 0; i < slots.Count; i++)
+                arr[i] = slots[i].Read(sav);
+            return arr;
+        }
     }
 
     private static readonly List<SlotInfoMisc> None = [];
@@ -58,11 +61,11 @@ public static partial class Extensions
 
     private static List<SlotInfoMisc> GetExtraSlots3(SAV3 sav)
     {
-        if (sav is not SAV3FRLG)
+        if (sav is not SAV3FRLG frlg)
             return None;
         return
         [
-            new(sav.LargeBuffer[0x3C98..], 0) {Type = StorageSlotType.Daycare},
+            new(frlg.LargeBlock.SingleDaycareRoute5, 0) {Type = StorageSlotType.Daycare},
         ];
     }
 
@@ -72,7 +75,7 @@ public static partial class Extensions
         if (sav.GTS > 0)
             list.Add(new SlotInfoMisc(sav.GeneralBuffer[sav.GTS..], 0) { Type = StorageSlotType.GTS });
         if (sav is SAV4HGSS hgss)
-            list.Add(new SlotInfoMisc(hgss.GeneralBuffer[SAV4HGSS.WalkerPair..], 1) {Type = StorageSlotType.Misc});
+            list.Add(new SlotInfoMisc(hgss.GeneralBuffer[SAV4HGSS.WalkerPair..], 1) {Type = StorageSlotType.Pokéwalker});
         return list;
     }
 
@@ -81,7 +84,7 @@ public static partial class Extensions
         var list = new List<SlotInfoMisc>
         {
             new(sav.GTS.Upload, 0) {Type = StorageSlotType.GTS},
-            new(sav.GlobalLink.Upload, 0) { Type = StorageSlotType.Misc },
+            new(sav.GlobalLink.Upload, 0) { Type = StorageSlotType.PGL },
 
             new(sav.BattleBox[0], 0) {Type = StorageSlotType.BattleBox},
             new(sav.BattleBox[1], 1) {Type = StorageSlotType.BattleBox},
@@ -103,7 +106,7 @@ public static partial class Extensions
         [
             new(sav.GTS.Upload, 0) {Type = StorageSlotType.GTS},
             new(sav.Fused[0], 0) {Type = StorageSlotType.FusedKyurem},
-            new(sav.SUBE.GiveSlot, 0, Mutable: true) {Type = StorageSlotType.Misc}, // Old Man
+            new(sav.SUBE.GiveSlot, 0, Mutable: true) {Type = StorageSlotType.Scripted}, // Old Man
 
             new(sav.BattleBox[0], 0) {Type = StorageSlotType.BattleBox},
             new(sav.BattleBox[1], 1) {Type = StorageSlotType.BattleBox},
@@ -120,7 +123,7 @@ public static partial class Extensions
         [
             new(sav.GTS.Upload, 0) { Type = StorageSlotType.GTS },
             new(sav.Fused[0], 0) { Type = StorageSlotType.FusedKyurem },
-            new(sav.SUBE.GiveSlot, 0) {Type = StorageSlotType.Misc},
+            new(sav.SUBE.GiveSlot, 0) {Type = StorageSlotType.Scripted},
 
             new(sav.BattleBox[0], 0) {Type = StorageSlotType.BattleBox},
             new(sav.BattleBox[1], 1) {Type = StorageSlotType.BattleBox},
@@ -147,9 +150,9 @@ public static partial class Extensions
             ]);
             list.AddRange(
             [
-                new SlotInfoMisc(uu.BattleAgency[0], 0) {Type = StorageSlotType.Misc},
-                new SlotInfoMisc(uu.BattleAgency[1], 1) {Type = StorageSlotType.Misc},
-                new SlotInfoMisc(uu.BattleAgency[2], 2) {Type = StorageSlotType.Misc},
+                new SlotInfoMisc(uu.BattleAgency[0], 0) {Type = StorageSlotType.BattleAgency},
+                new SlotInfoMisc(uu.BattleAgency[1], 1) {Type = StorageSlotType.BattleAgency},
+                new SlotInfoMisc(uu.BattleAgency[2], 2) {Type = StorageSlotType.BattleAgency},
             ]);
         }
 
@@ -199,15 +202,15 @@ public static partial class Extensions
     {
         return
         [
-            new(sav.UgSaveData[0], 0, true) { Type = StorageSlotType.Misc, HideLegality = true },
-            new(sav.UgSaveData[1], 1, true) { Type = StorageSlotType.Misc, HideLegality = true },
-            new(sav.UgSaveData[2], 2, true) { Type = StorageSlotType.Misc, HideLegality = true },
-            new(sav.UgSaveData[3], 3, true) { Type = StorageSlotType.Misc, HideLegality = true },
-            new(sav.UgSaveData[4], 4, true) { Type = StorageSlotType.Misc, HideLegality = true },
-            new(sav.UgSaveData[5], 5, true) { Type = StorageSlotType.Misc, HideLegality = true },
-            new(sav.UgSaveData[6], 6, true) { Type = StorageSlotType.Misc, HideLegality = true },
-            new(sav.UgSaveData[7], 7, true) { Type = StorageSlotType.Misc, HideLegality = true },
-            new(sav.UgSaveData[8], 8, true) { Type = StorageSlotType.Misc, HideLegality = true },
+            new(sav.UgSaveData[0], 0, true) { Type = StorageSlotType.Underground, HideLegality = true },
+            new(sav.UgSaveData[1], 1, true) { Type = StorageSlotType.Underground, HideLegality = true },
+            new(sav.UgSaveData[2], 2, true) { Type = StorageSlotType.Underground, HideLegality = true },
+            new(sav.UgSaveData[3], 3, true) { Type = StorageSlotType.Underground, HideLegality = true },
+            new(sav.UgSaveData[4], 4, true) { Type = StorageSlotType.Underground, HideLegality = true },
+            new(sav.UgSaveData[5], 5, true) { Type = StorageSlotType.Underground, HideLegality = true },
+            new(sav.UgSaveData[6], 6, true) { Type = StorageSlotType.Underground, HideLegality = true },
+            new(sav.UgSaveData[7], 7, true) { Type = StorageSlotType.Underground, HideLegality = true },
+            new(sav.UgSaveData[8], 8, true) { Type = StorageSlotType.Underground, HideLegality = true },
         ];
     }
 
@@ -236,8 +239,8 @@ public static partial class Extensions
 
         if (sav.Blocks.TryGetBlock(SaveBlockAccessor9SV.KSurpriseTrade, out var surprise))
         {
-            list.Add(new(surprise.Raw[0x198..], 0) { Type = StorageSlotType.Misc }); // my upload
-            list.Add(new(surprise.Raw[0x02C..], 1) { Type = StorageSlotType.Misc }); // received from others
+            list.Add(new(surprise.Raw[0x198..], 0) { Type = StorageSlotType.SurpriseTrade }); // my upload
+            list.Add(new(surprise.Raw[0x02C..], 1) { Type = StorageSlotType.SurpriseTrade }); // received from others
         }
         return list;
     }
@@ -251,7 +254,7 @@ public static partial class Extensions
         {
             const int size = 0x1F0;
             var ofs = (i * size) + 8;
-            var entry = shinyCache.Raw.Slice(ofs, PokeCrypto.SIZE_9PARTY);
+            var entry = shinyCache.Raw.Slice(ofs, PokeCrypto.SIZE_8PARTY);
             if (EntityDetection.IsPresent(entry.Span))
                 list.Add(new(entry, i, true) { Type = StorageSlotType.Shiny, HideLegality = true }); // no OT info
             else
@@ -263,9 +266,9 @@ public static partial class Extensions
         {
             const int size = 0x1A8;
             var ofs = (i * size) + 8;
-            var entry = giveAway.Raw.Slice(ofs, PokeCrypto.SIZE_9PARTY);
+            var entry = giveAway.Raw.Slice(ofs, PokeCrypto.SIZE_8PARTY);
             if (EntityDetection.IsPresent(entry.Span))
-                list.Add(new(entry, i, true, Mutable: true) { Type = StorageSlotType.Misc });
+                list.Add(new(entry, i, true, Mutable: true) { Type = StorageSlotType.Scripted });
             else
                 break;
         }

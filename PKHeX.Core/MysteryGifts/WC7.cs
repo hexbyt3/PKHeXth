@@ -17,7 +17,7 @@ public sealed class WC7(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
     public override EntityContext Context => EntityContext.Gen7;
     public override bool FatefulEncounter => true;
 
-    public int RestrictLanguage { get; set; } // None
+    public byte RestrictLanguage { get; set; } // None
     public byte RestrictVersion { get; set; } // Permit All
 
     public bool CanBeReceivedByVersion(GameVersion version)
@@ -565,9 +565,13 @@ public sealed class WC7(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
         {
             // Small bypass for Greninja-Ash when mega evolved (normal and Ash map to the same Mega-3, managed by game)
             if (this is { Species: (ushort)Core.Species.Greninja, Form: 1 } && pk is { Context: EntityContext.Gen9a, Form: 3 })
-            { } // Allow
+            {
+                // Allow
+            }
             else
+            {
                 return false;
+            }
         }
 
         if (IsEgg)
@@ -588,7 +592,7 @@ public sealed class WC7(Memory<byte> raw) : DataMysteryGift(raw), IRibbonSetEven
         else
         {
             if (!Shiny.IsValid(pk)) return false;
-            if (!IsMatchEggLocation(pk)) return false;
+            if (!IsMatchEggLocationInternal(pk)) return false;
             if (Location != pk.MetLocation) return false;
         }
 

@@ -45,7 +45,7 @@ public sealed class LearnGroup8a : ILearnGroup
             var move = current[i];
             var chk = game.GetCanLearn(pk, pi, evo, move);
             if (chk != default)
-                result[i] = new(chk, (byte)stage, Generation);
+                result[i] = new(chk, (byte)stage, Context);
         }
     }
 
@@ -88,18 +88,8 @@ public sealed class LearnGroup8a : ILearnGroup
     private static void FlagEncounterMoves(IEncounterTemplate enc, Span<bool> result)
     {
         if (enc is IMoveset { Moves: { HasMoves: true } x })
-        {
-            result[x.Move4] = true;
-            result[x.Move3] = true;
-            result[x.Move2] = true;
-            result[x.Move1] = true;
-        }
+            x.FlagMoves(result);
         if (enc is IRelearn { Relearn: { HasMoves: true } r })
-        {
-            result[r.Move4] = true;
-            result[r.Move3] = true;
-            result[r.Move2] = true;
-            result[r.Move1] = true;
-        }
+            r.FlagMoves(result);
     }
 }

@@ -174,23 +174,19 @@ public static class Overworld8aRNG
         pk.Gender = gender;
 
         var nature = (Nature)rand.NextInt(25);
-        pk.Nature = pk.StatNature = nature;
+        if (criteria.IsSpecifiedNature() && !criteria.IsSatisfiedNature(nature))
+            return false;
+        pk.Nature = pk.StatAlignment = nature;
 
         var (height, weight) = para.IsAlpha
             ? (byte.MaxValue, byte.MaxValue)
             : ((byte)(rand.NextInt(0x81) + rand.NextInt(0x80)),
                (byte)(rand.NextInt(0x81) + rand.NextInt(0x80)));
 
-        if (pk is IScaledSize s)
-        {
-            s.HeightScalar = height;
-            s.WeightScalar = weight;
-            if (pk is IScaledSizeValue a)
-            {
-                a.ResetHeight();
-                a.ResetWeight();
-            }
-        }
+        pk.HeightScalar = height;
+        pk.WeightScalar = weight;
+        pk.ResetHeight();
+        pk.ResetWeight();
 
         return true;
     }
@@ -297,9 +293,13 @@ public static class Overworld8aRNG
             if (!isFixedW && s.WeightScalar != weight)
             {
                 if (height == 0 && s.WeightScalar == 0 && HomeQuirks.HasEnteredSetZeroScale(pk))
-                { } // OK
+                {
+                    // OK
+                }
                 else
+                {
                     return false;
+                }
             }
         }
 

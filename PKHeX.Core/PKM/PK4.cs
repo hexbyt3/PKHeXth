@@ -24,7 +24,7 @@ public sealed class PK4 : G4PKM
 
     private static Memory<byte> DecryptParty(Memory<byte> data)
     {
-        PokeCrypto.DecryptIfEncrypted45(ref data);
+        PokeCrypto.DecryptIfEncrypted45(data.Span);
         if (data.Length >= PokeCrypto.SIZE_4PARTY)
             return data;
 
@@ -292,11 +292,6 @@ public sealed class PK4 : G4PKM
     #endregion
 
     // Methods
-    protected override byte[] Encrypt()
-    {
-        RefreshChecksum();
-        return PokeCrypto.EncryptArray45(Data);
-    }
 
     public BK4 ConvertToBK4()
     {
@@ -338,7 +333,7 @@ public sealed class PK4 : G4PKM
             pk5.Form = 0;
             pk5.HeldItem = 0;
         }
-        else if (!Legal.HeldItems_BW.AsSpan().Contains((ushort)HeldItem))
+        else if (!Legal.HeldItems_BW.Contains((ushort)HeldItem))
         {
             pk5.HeldItem = 0; // if valid, it's already copied
         }

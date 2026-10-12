@@ -18,27 +18,30 @@ public sealed class BK4 : G4PKM
         0x63, 0x64, 0x65, 0x66, 0x67, // unused ribbon bits
     ];
 
-    public override int SIZE_PARTY => PokeCrypto.SIZE_4STORED;
+    public override int SIZE_PARTY => PokeCrypto.SIZE_4BPARTY;
     public override int SIZE_STORED => PokeCrypto.SIZE_4STORED;
     public override EntityContext Context => EntityContext.Gen4;
     public override PersonalInfo4 PersonalInfo => PersonalTable.HGSS[Species];
-
-    public override byte[] DecryptedBoxData => EncryptedBoxData;
+    protected override void EncryptStored(Span<byte> stored) => PokeCrypto.Encrypt4BE(stored);
+    protected override void EncryptParty(Span<byte> party) { }
 
     public override bool Valid => ChecksumValid || ((Sanity == 0 || (Sanity & 0x4000) != 0) && Species <= MaxSpeciesID);
 
-    public static BK4 ReadUnshuffle(ReadOnlySpan<byte> data)
+    public BK4(Memory<byte> data) : base(DecryptParty(data))
     {
-        var unshuffled = PokeCrypto.DecryptArray4BE(data);
-        var result = new BK4(unshuffled);
-        result.RefreshChecksum();
-        return result;
+        IsDecryptedStateBox = true;
+        if (data.Length > SIZE_STORED)
+            IsDecryptedStateParty = true;
     }
 
-    public BK4(Memory<byte> data) : base(data)
+    private static Memory<byte> DecryptParty(Memory<byte> data)
     {
-        Sanity = 0x4000;
-        ResetPartyStats();
+        if (data.Length >= PokeCrypto.SIZE_4BPARTY)
+            return data;
+
+        var result = new byte[PokeCrypto.SIZE_4BPARTY];
+        data.Span.CopyTo(result);
+        return result;
     }
 
     public BK4() : this(new byte[PokeCrypto.SIZE_4STORED]) { }
@@ -47,7 +50,22 @@ public sealed class BK4 : G4PKM
 
     // Structure
     public override uint PID { get => ReadUInt32BigEndian(Data); set => WriteUInt32BigEndian(Data, value); }
+
+    // Flags indicating overall state
     public override ushort Sanity { get => ReadUInt16BigEndian(Data[0x04..]); set => WriteUInt16BigEndian(Data[0x04..], value); }
+
+    public bool IsDecryptedStateBox
+    {
+        get => (Sanity & 0x4000) != 0;
+        set => Sanity = (ushort)((Sanity & ~0x4000) | (value ? 0x4000 : 0));
+    }
+
+    public bool IsDecryptedStateParty
+    {
+        get => (Sanity & 0x8000) != 0;
+        set => Sanity = (ushort)((Sanity & ~0x8000) | (value ? 0x8000 : 0));
+    }
+
     public override ushort Checksum { get => ReadUInt16BigEndian(Data[0x06..]); set => WriteUInt16BigEndian(Data[0x06..], value); }
 
     #region Block A
@@ -286,27 +304,23 @@ public sealed class BK4 : G4PKM
     public override sbyte WalkingMood { get => (sbyte)Data[0x87]; set => Data[0x87] = (byte)value; }
     #endregion
 
-    // Not stored
-    public override int Status_Condition { get; set; }
-    public override byte Stat_Level { get => CurrentLevel; set {} }
-    public override int Stat_HPCurrent { get; set; }
-    public override int Stat_HPMax { get; set; }
-    public override int Stat_ATK { get; set; }
-    public override int Stat_DEF { get; set; }
-    public override int Stat_SPE { get; set; }
-    public override int Stat_SPA { get; set; }
-    public override int Stat_SPD { get; set; }
+    public override int Status_Condition { get => ReadInt32BigEndian(Data[0x88..]); set => WriteInt32BigEndian(Data[0x88..], value); }
+    public override byte Stat_Level { get => Data[0x8C]; set => Data[0x8C] = value; }
+    public byte BallCapsuleIndex { get => Data[0x8D]; set => Data[0x8D] = value; } // ball seals are not in PBR
+    public override int Stat_HPCurrent { get => ReadUInt16BigEndian(Data[0x8E..]); set => WriteUInt16BigEndian(Data[0x8E..], (ushort)value); }
+    public override int Stat_HPMax { get => ReadUInt16BigEndian(Data[0x90..]); set => WriteUInt16BigEndian(Data[0x90..], (ushort)value); }
+    public override int Stat_ATK { get => ReadUInt16BigEndian(Data[0x92..]); set => WriteUInt16BigEndian(Data[0x92..], (ushort)value); }
+    public override int Stat_DEF { get => ReadUInt16BigEndian(Data[0x94..]); set => WriteUInt16BigEndian(Data[0x94..], (ushort)value); }
+    public override int Stat_SPE { get => ReadUInt16BigEndian(Data[0x96..]); set => WriteUInt16BigEndian(Data[0x96..], (ushort)value); }
+    public override int Stat_SPA { get => ReadUInt16BigEndian(Data[0x98..]); set => WriteUInt16BigEndian(Data[0x98..], (ushort)value); }
+    public override int Stat_SPD { get => ReadUInt16BigEndian(Data[0x9A..]); set => WriteUInt16BigEndian(Data[0x9A..], (ushort)value); }
+
+    public Span<byte> PartyTail => Data[0x9C..0xDC]; // 0x40 bytes ?? might be 2x 0x20 entries of something?
 
     public override int Characteristic => EntityCharacteristic.GetCharacteristicInvertFields(PID, IV32);
 
     // Methods
     protected override ushort CalculateChecksum() => Checksums.Add16BigEndian(Data[8..PokeCrypto.SIZE_4STORED]);
-
-    protected override byte[] Encrypt()
-    {
-        RefreshChecksum();
-        return PokeCrypto.EncryptArray4BE(Data);
-    }
 
     public PK4 ConvertToPK4()
     {

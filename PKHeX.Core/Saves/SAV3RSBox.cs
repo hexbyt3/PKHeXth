@@ -39,12 +39,18 @@ public sealed class SAV3RSBox : SaveFile, IGCSaveFile, IBoxDetailName, IBoxDetai
         // Detect active save
         int[] SaveCounts = Array.ConvertAll(Blocks, block => (int)block.SaveCount);
         SaveCount = SaveCounts.Max();
-        int ActiveSAV = Array.IndexOf(SaveCounts, SaveCount) / BLOCK_COUNT;
+        int ActiveSAV = SaveCounts.IndexOf(SaveCount) / BLOCK_COUNT;
         var ordered = Blocks
             .Skip(ActiveSAV * BLOCK_COUNT)
             .Take(BLOCK_COUNT)
             .OrderBy(b => b.ID);
-        Blocks = [..ordered];
+
+        // Extra blocks have no backup
+        var extra = Blocks
+            .Skip(BLOCK_COUNT * 2)
+            .Take(BLOCK_EXTRA_COUNT)
+            .OrderBy(b => b.ID);
+        Blocks = [..ordered, ..extra];
 
         // Set up PC data buffer beyond end of save file.
         Box = 0;
@@ -54,11 +60,11 @@ public sealed class SAV3RSBox : SaveFile, IGCSaveFile, IBoxDetailName, IBoxDetai
 
     private static BlockInfoRSBOX[] ReadBlocks(ReadOnlySpan<byte> data)
     {
-        var blocks = new BlockInfoRSBOX[2 * BLOCK_COUNT];
+        var blocks = new BlockInfoRSBOX[2 * BLOCK_COUNT + BLOCK_EXTRA_COUNT];
         for (int i = 0; i < blocks.Length; i++)
         {
             int offset = BLOCK_SIZE + (i * BLOCK_SIZE);
-            blocks[i] = new BlockInfoRSBOX(data, offset);
+            blocks[i] = new BlockInfoRSBOX(data, offset, i >= 2 * BLOCK_COUNT);
         }
 
         return blocks;
@@ -67,8 +73,9 @@ public sealed class SAV3RSBox : SaveFile, IGCSaveFile, IBoxDetailName, IBoxDetai
     private BlockInfoRSBOX[] Blocks;
     private int SaveCount;
     private const int BLOCK_COUNT = 23;
+    private const int BLOCK_EXTRA_COUNT = 12;
     private const int BLOCK_SIZE = 0x2000;
-    private const int SIZE_RESERVED = BLOCK_COUNT * BLOCK_SIZE; // unpacked box data
+    private const int SIZE_RESERVED = (BLOCK_COUNT + BLOCK_EXTRA_COUNT) * BLOCK_SIZE; // unpacked box data
 
     protected override Memory<byte> GetFinalData()
     {
@@ -97,7 +104,8 @@ public sealed class SAV3RSBox : SaveFile, IGCSaveFile, IBoxDetailName, IBoxDetai
         const int copySize = BLOCK_SIZE - 0x10;
         foreach (var b in Blocks)
         {
-            var src = BoxBuffer.Slice((int)(b.ID * copySize), copySize);
+            var ofs = (int)(b.ID * copySize) + (b.Extra ? BLOCK_COUNT * BLOCK_SIZE : 0);
+            var src = BoxBuffer.Slice(ofs, copySize);
             var dest = data.Slice(b.Offset + 0xC, copySize);
             src.CopyTo(dest);
         }
@@ -109,7 +117,8 @@ public sealed class SAV3RSBox : SaveFile, IGCSaveFile, IBoxDetailName, IBoxDetai
         const int copySize = BLOCK_SIZE - 0x10;
         foreach (var b in Blocks)
         {
-            var dest = BoxBuffer.Slice((int)(b.ID * copySize), copySize);
+            var ofs = (int)(b.ID * copySize) + (b.Extra ? BLOCK_COUNT * BLOCK_SIZE : 0);
+            var dest = BoxBuffer.Slice(ofs, copySize);
             var src = data.Slice(b.Offset + 0xC, copySize);
             src.CopyTo(dest);
         }
@@ -125,15 +134,16 @@ public sealed class SAV3RSBox : SaveFile, IGCSaveFile, IBoxDetailName, IBoxDetai
         s.BoxBuffer.CopyTo(BoxBuffer);
     }
 
-    protected override int SIZE_STORED => PokeCrypto.SIZE_3STORED + 4;
-    protected override int SIZE_PARTY => PokeCrypto.SIZE_3PARTY; // unused
+    public override int SIZE_STORED => PokeCrypto.SIZE_3STORED;
+    public override int SIZE_BOXSLOT => PokeCrypto.SIZE_3STORED + 4; // tid-sid of depositor
+    public override int SIZE_PARTY => PokeCrypto.SIZE_3PARTY; // unused
     public override PK3 BlankPKM => new();
     public override Type PKMType => typeof(PK3);
 
     public override ushort MaxMoveID => Legal.MaxMoveID_3;
     public override ushort MaxSpeciesID => Legal.MaxSpeciesID_3;
     public override int MaxAbilityID => Legal.MaxAbilityID_3;
-    public override int MaxItemID => Legal.MaxItemID_3;
+    public override int MaxItemID => Legal.MaxItemID_3_RS;
     public override int MaxBallID => Legal.MaxBallID_3;
     public override GameVersion MaxGameID => Legal.MaxGameID_3;
 
@@ -158,7 +168,7 @@ public sealed class SAV3RSBox : SaveFile, IGCSaveFile, IBoxDetailName, IBoxDetai
 
     // Storage
     public override int GetPartyOffset(int slot) => -1;
-    public override int GetBoxOffset(int box) => 8 + (SIZE_STORED * box * 30);
+    public override int GetBoxOffset(int box) => 8 + (SIZE_BOXSLOT * box * 30);
     public override int GetBoxSlotOffset(int box, int slot)
     {
         // Boxes are a 12x5 grid instead of the usual 6x5
@@ -169,7 +179,7 @@ public sealed class SAV3RSBox : SaveFile, IGCSaveFile, IBoxDetailName, IBoxDetai
         if (box % 2 == 1) // right side
             col += 6;
         int boxSlot = (row * 12) + col;
-        return GetBoxOffset(box &~1) + (boxSlot * SIZE_STORED);
+        return GetBoxOffset(box &~1) + (boxSlot * SIZE_BOXSLOT);
     }
 
     public override int CurrentBox
@@ -233,28 +243,20 @@ public sealed class SAV3RSBox : SaveFile, IGCSaveFile, IBoxDetailName, IBoxDetai
         SetString(span, value, 8, StringConverterOption.ClearZero);
     }
 
-    protected override PK3 GetPKM(byte[] data)
+    protected override PK3 GetPKM(Memory<byte> data) => new(data);
+
+    protected override void DecryptPKM(Span<byte> data) => PokeCrypto.Decrypt3(data);
+
+    protected override void WriteSlotBox(PKM pk, Span<byte> data)
     {
-        if (data.Length != PokeCrypto.SIZE_3STORED)
-            Array.Resize(ref data, PokeCrypto.SIZE_3STORED);
-        return new(data);
+        base.WriteSlotBox(pk, data);
+        WriteUInt32LittleEndian(data[PokeCrypto.SIZE_3STORED..], pk.ID32); // assume from OT
     }
 
-    protected override byte[] DecryptPKM(byte[] data)
-    {
-        if (data.Length != PokeCrypto.SIZE_3STORED)
-            Array.Resize(ref data, PokeCrypto.SIZE_3STORED);
-        return PokeCrypto.DecryptArray3(data);
-    }
-
-    protected override void SetDex(PKM pk) { /* No Pokédex for this game, do nothing */ }
-
-    public override void WriteBoxSlot(PKM pk, Span<byte> data)
-    {
-        base.WriteBoxSlot(pk, data);
-        WriteUInt16LittleEndian(data[(PokeCrypto.SIZE_3STORED)..], pk.TID16);
-        WriteUInt16LittleEndian(data[(PokeCrypto.SIZE_3STORED + 2)..], pk.SID16);
-    }
+    public const int WP_WIDTH = 568;
+    public const int WP_HEIGHT = 216;
+    public bool MyWallpaperEnabled { get => BoxBuffer[0x2E004] != 0; set => BoxBuffer[0x2E004] = (byte)(value ? 1 : 0); }
+    public Span<byte> MyWallpaper => BoxBuffer.Slice(0x2E020, 0xEFA0);
 
     public override string GetString(ReadOnlySpan<byte> data)
         => StringConverter3.GetString(data, Japanese);

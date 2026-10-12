@@ -32,32 +32,36 @@ public static class ContestStatInfo
     /// </remarks>
     private const int BestSheenStat8b = 120;
 
-    public static void SetSuggestedContestStats(this PKM pk, IEncounterTemplate enc, EvolutionHistory h)
+    extension(PKM pk)
     {
-        if (pk is not IContestStats s)
-            return;
+        public void SetSuggestedContestStats(IEncounterTemplate enc, EvolutionHistory h)
+        {
+            if (pk is not IContestStats s)
+                return;
 
-        var restrict = GetContestStatRestriction(pk, pk.Generation, h);
-        var baseStat = GetReferenceTemplate(enc);
-        if (restrict == None || pk.Species is not (int)Species.Milotic)
-            baseStat.CopyContestStatsTo(s); // reset
-        else
+            var restrict = GetContestStatRestriction(pk, pk.Generation, h);
+            var baseStat = GetReferenceTemplate(enc);
+            if (restrict == None || pk.Species is not (int)Species.Milotic)
+                baseStat.CopyContestStatsTo(s); // reset
+            else
+                s.SetAllContestStatsTo(MaxContestStat, restrict == NoSheen ? baseStat.ContestSheen : MaxContestStat);
+        }
+
+        public void SetMaxContestStats(IEncounterTemplate enc, EvolutionHistory h)
+        {
+            if (pk is not IContestStats s)
+                return;
+            var restrict = GetContestStatRestriction(pk, enc.Generation, h);
+            var baseStat = GetReferenceTemplate(enc);
+            if (restrict == None)
+                return;
             s.SetAllContestStatsTo(MaxContestStat, restrict == NoSheen ? baseStat.ContestSheen : MaxContestStat);
-    }
-
-    public static void SetMaxContestStats(this PKM pk, IEncounterTemplate enc, EvolutionHistory h)
-    {
-        if (pk is not IContestStats s)
-            return;
-        var restrict = GetContestStatRestriction(pk, enc.Generation, h);
-        var baseStat = GetReferenceTemplate(enc);
-        if (restrict == None)
-            return;
-        s.SetAllContestStatsTo(MaxContestStat, restrict == NoSheen ? baseStat.ContestSheen : MaxContestStat);
+        }
     }
 
     public static ContestStatGranting GetContestStatRestriction(PKM pk, byte origin, EvolutionHistory h) => origin switch
     {
+        3 when pk.Format == 3 && !ParseSettings.AllowGBACrossTransferRSE(pk) => None,
         3 => pk.Format < 6    ? CorrelateSheen : Mixed,
         4 => pk.Format < 6    ? CorrelateSheen : Mixed,
 
@@ -173,12 +177,12 @@ public static class ContestStatInfo
         return (int)Math.Ceiling(sum / 5f);
     }
 
-    // Indexes into the NatureAmpTable
-    private const int AmpIndexCool   = 0; // Spicy
-    private const int AmpIndexTough  = 1; // Sour
-    private const int AmpIndexBeauty = 2; // Dry
-    private const int AmpIndexSmart  = 3; // Bitter
-    private const int AmpIndexCute   = 4; // Sweet
+    // Indexes into the NatureAmpTable (visual index)
+    private const int AmpIndexCool   = 0; // Spicy (Attack)
+    private const int AmpIndexTough  = 1; // Sour (Defense)
+    private const int AmpIndexBeauty = 2; // Dry (Sp. Attack)
+    private const int AmpIndexSmart  = 3; // Bitter (Sp. Defense)
+    private const int AmpIndexCute   = 4; // Sweet (Speed)
 
     private static int GetGainedSum(IContestStatsReadOnly s, Nature nature, IContestStatsReadOnly initial)
     {

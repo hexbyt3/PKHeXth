@@ -45,6 +45,8 @@ public enum LegalityCheckResultCode : ushort
     BallSpecies,
     BallSpeciesPass,
     BallUnavailable,
+    BallG4Sinnoh,
+    BallG4Johto,
 
     // Contest
     ContestZero,
@@ -68,6 +70,7 @@ public enum LegalityCheckResultCode : ushort
     EggLocationTrade,
     EggLocationTradeFail,
     EggMetLocationFail,
+    EggMoveCombination,
     EggNature,
     EggPP,
     EggPPUp,
@@ -136,16 +139,11 @@ public enum LegalityCheckResultCode : ushort
     FormArgumentValid,
     FormArgumentInvalid,
     FormBattle,
-    FormEternal,
-    FormEternalInvalid,
     FormInvalidGame,
     FormInvalidNature,
     FormItemMatches,
     FormItemInvalid,
     FormParty,
-    FormPikachuCosplay,
-    FormPikachuCosplayInvalid,
-    FormPikachuEventInvalid,
     FormValid,
     FormVivillon,
     FormVivillonEventPre,
@@ -201,6 +199,13 @@ public enum LegalityCheckResultCode : ushort
     GeoHardwareValid,
     GeoMemoryMissing,
     GeoNoCountryHT,
+
+    // GTS
+    GTSTrainerSanitized, // valid, tag
+    GTSTradedKoreanInternational, // valid
+    GTSTrainerSanitizedExpected,
+    GTSDisallowedClassicRibbon,
+    GTSDisallowedTradedEgg,
 
     // Hints
 
@@ -308,7 +313,7 @@ public enum LegalityCheckResultCode : ushort
     StatInvalidHeightWeight,
     StatGigantamaxInvalid,
     StatGigantamaxValid,
-    StatNatureInvalid,
+    StatAlignmentInvalid,
     StatBattleVersionInvalid,
     StatNobleInvalid,
     StatAlphaInvalid,
@@ -354,16 +359,18 @@ public enum LegalityCheckResultCode : ushort
     TransferMetLocation,
     TransferNature,
     TransferObedienceLevel,
-    TransferKoreanGen4,
     TransferEncryptGen6BitFlip,
     TransferEncryptGen6Equals,
     TransferEncryptGen6Xor,
     TransferTrackerMissing,
     TransferTrackerShouldBeZero,
+
+    // Trash Bytes
     TrashBytesExpected,
     TrashBytesMismatchInitial,
-    TrashBytesMissingTerminator,
+    TrashBytesMissingTerminatorFinal,
     TrashBytesShouldBeEmpty,
+    TrashBytesResetViaTransfer,
 
     // Bulk Cross-Comparison
     BulkCloneDetectedDetails,
@@ -387,6 +394,7 @@ public enum LegalityCheckResultCode : ushort
     ContestSheenLEQ_0,
     EggFMetLevel_0,
     EffortUntrainedCap_0,
+    EffortUntrainedMoreEXP_0,
     FormArgumentLEQ_0,
     FormArgumentGEQ_0,
     FormInvalidExpect_0,
@@ -466,6 +474,7 @@ public enum LegalityCheckResultCode : ushort
     // One/Two Arguments: Special
     FirstComplex,
     RibbonsInvalid_0 = FirstComplex, // generated string
+    EggBreedChain_0, // generated string
     WordFilterFlaggedPattern_01, // filter, pattern
     WordFilterInvalidCharacter_0, // filter, pattern
 

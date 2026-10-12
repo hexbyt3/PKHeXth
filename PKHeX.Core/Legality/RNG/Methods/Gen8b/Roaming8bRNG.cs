@@ -22,7 +22,7 @@ public static class Roaming8bRNG
 
         // Since the inner methods do not set Gender (only fixed Genders are applicable) and Nature (assume Synchronize used), set them here.
         pk.Gender = (byte)(pk.Species == (int)Species.Cresselia ? 1 : 2); // Mesprit
-        pk.Nature = pk.StatNature = criteria.GetNature();
+        pk.Nature = pk.StatAlignment = criteria.GetNature();
 
         int ctr = 0;
         var rnd = Util.Rand;
@@ -34,18 +34,7 @@ public static class Roaming8bRNG
             if (TryApplyFromSeed(pk, criteria, shiny, flawless, seed))
                 return;
         } while (++ctr != maxAttempts);
-
-        // Fallback: relax IV criteria but keep shiny requirement; retry until a valid seed is found.
-        int fallback = 0;
-        while (!TryApplyFromSeed(pk, EncounterCriteria.Unrestricted, shiny, flawless, rnd.Rand32()))
-        {
-            if (++fallback >= maxAttempts)
-            {
-                // Last resort: drop shiny requirement too.
-                TryApplyFromSeed(pk, EncounterCriteria.Unrestricted, Shiny.FixedValue, flawless, rnd.Rand32());
-                break;
-            }
-        }
+        TryApplyFromSeed(pk, EncounterCriteria.Unrestricted, shiny, flawless, rnd.Rand32());
     }
 
     public static bool TryApplyFromSeed(PB8 pk, in EncounterCriteria criteria, Shiny shiny, int flawless, uint seed)

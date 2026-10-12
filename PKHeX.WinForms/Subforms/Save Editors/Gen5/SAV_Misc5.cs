@@ -550,7 +550,7 @@ public partial class SAV_Misc5 : Form
         CB_Move.SelectedValue = (int)current.Move;
         CB_Gender.SelectedValue = (int)current.Gender;
         CB_Form.SelectedIndex = CB_Form.Items.Count <= current.Form ? 0 : current.Form;
-        NUD_Animation.SetValueClamped(current.Animation);
+        NUD_Animation.SetValueClamped((int)current.Animation);
         CurrentSlot = current;
         SetSprite(current);
     }
@@ -589,13 +589,9 @@ public partial class SAV_Misc5 : Form
         {
             CurrentSlot.Form = (byte)CB_Form.SelectedIndex;
         }
-        else if (sender == CHK_Invisible)
-        {
-            CurrentSlot.Invisible = CHK_Invisible.Checked;
-        }
         else if (sender == NUD_Animation)
         {
-            CurrentSlot.Animation = (int)NUD_Animation.Value;
+            CurrentSlot.Animation = (EntreeForestAnimation)NUD_Animation.Value;
         }
 
         SetSprite(CurrentSlot);
@@ -885,7 +881,7 @@ public partial class SAV_Misc5 : Form
         if (SAV is SAV5B2W2 b2w2)
         {
             var medal = b2w2.Medals[CB_CurrentMedal.SelectedIndex];
-            medal.State = (Medal5State)CB_MedalState.SelectedIndex;
+            medal.State = (MedalState5)CB_MedalState.SelectedIndex;
             if (medal.CanHaveDate)
             {
                 if (!medal.HasDate)

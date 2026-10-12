@@ -91,7 +91,7 @@ public record struct EncounterEnumerator9(PKM Entity, EvoCriteria[] Chain, GameV
                     goto case YieldState.StartCaptures;
                 State = YieldState.Trade; goto case YieldState.Trade;
             case YieldState.Trade:
-                if (TryGetNext(Encounters9.TradeGift_SVArray))
+                if (TryGetNext(Encounters9.TradeGift_SV))
                     return true;
                 if (Yielded)
                     break;
@@ -108,11 +108,11 @@ public record struct EncounterEnumerator9(PKM Entity, EvoCriteria[] Chain, GameV
                     goto case YieldState.SlotEnd;
                 State = YieldState.Slot; goto case YieldState.Slot;
             case YieldState.Slot:
-                if (TryGetNext<EncounterArea9, EncounterSlot9>(Encounters9.SlotsArray))
+                if (TryGetNext<EncounterArea9, EncounterSlot9>(Encounters9.Slots))
                     return true;
                 Index = 0; State = YieldState.StaticOutbreak; goto case YieldState.StaticOutbreak;
             case YieldState.StaticOutbreak:
-                if (TryGetNext(Encounters9.OutbreakArray))
+                if (TryGetNext(Encounters9.Outbreak))
                     return true;
                 Index = 0; goto case YieldState.SlotEnd;
             case YieldState.SlotEnd:
@@ -128,41 +128,41 @@ public record struct EncounterEnumerator9(PKM Entity, EvoCriteria[] Chain, GameV
                 goto case YieldState.Fallback; // already checked everything else
 
             case YieldState.StaticVersionSL:
-                if (TryGetNext(Encounters9.StaticSLArray))
+                if (TryGetNext(Encounters9.StaticSL))
                     return true;
                 Index = 0; State = YieldState.StaticShared; goto case YieldState.StaticShared;
             case YieldState.StaticVersionVL:
-                if (TryGetNext(Encounters9.StaticVLArray))
+                if (TryGetNext(Encounters9.StaticVL))
                     return true;
                 Index = 0; State = YieldState.StaticShared; goto case YieldState.StaticShared;
 
             case YieldState.StaticShared:
-                if (TryGetNext(Encounters9.Encounter_SVArray))
+                if (TryGetNext(Encounters9.Encounter_SV))
                     return true;
                 Index = 0; State = YieldState.StaticFixed; goto case YieldState.StaticFixed;
 
             case YieldState.StaticFixed:
-                if (TryGetNext(Encounters9.FixedArray))
+                if (TryGetNext(Encounters9.Fixed))
                     return true;
                 Index = 0; State = YieldState.StaticTeraBase; goto case YieldState.StaticTeraBase;
             case YieldState.StaticTeraBase:
-                if (TryGetNext(Encounters9.TeraBaseArray))
+                if (TryGetNext(Encounters9.TeraBase))
                     return true;
                 Index = 0; State = YieldState.StaticTeraDLC1; goto case YieldState.StaticTeraDLC1;
             case YieldState.StaticTeraDLC1:
-                if (TryGetNext(Encounters9.TeraDLC1Array))
+                if (TryGetNext(Encounters9.TeraDLC1))
                     return true;
                 Index = 0; State = YieldState.StaticTeraDLC2; goto case YieldState.StaticTeraDLC2;
             case YieldState.StaticTeraDLC2:
-                if (TryGetNext(Encounters9.TeraDLC2Array))
+                if (TryGetNext(Encounters9.TeraDLC2))
                     return true;
                 Index = 0; State = YieldState.StaticDist; goto case YieldState.StaticDist;
             case YieldState.StaticDist:
-                if (TryGetNext(Encounters9.DistArray))
+                if (TryGetNext(Encounters9.Dist))
                     return true;
                 Index = 0; State = YieldState.StaticMight; goto case YieldState.StaticMight;
             case YieldState.StaticMight:
-                if (TryGetNext(Encounters9.MightArray))
+                if (TryGetNext(Encounters9.Might))
                     return true;
                 if (mustBeSlot)
                     goto case YieldState.Fallback; // already checked everything else

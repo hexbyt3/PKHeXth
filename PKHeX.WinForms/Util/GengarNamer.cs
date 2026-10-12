@@ -138,7 +138,7 @@ namespace PKHeX.WinForms
         private static string GetNature(PKM pk)
         {
             var nature = pk.Nature;
-            var strings = Util.GetNaturesList("en");
+            var strings = Util.GetStringList("natures", "en");
             if ((uint)nature >= strings.Length)
                 nature = 0;
             return strings[(uint)nature];
@@ -147,7 +147,7 @@ namespace PKHeX.WinForms
         private static string GetAbility(PKM pk)
         {
             int abilityIndex = pk.Ability;
-            var abilityStrings = Util.GetAbilitiesList("en");
+            var abilityStrings = Util.GetStringList("abilities", "en");
             if ((uint)abilityIndex >= abilityStrings.Length)
                 abilityIndex = 0;
             return abilityStrings[abilityIndex];

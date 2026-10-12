@@ -17,13 +17,13 @@ public sealed record EncounterStatic9a(ushort Species, byte Form, byte Level, by
     public AbilityPermission Ability => Any12;
     public Ball FixedBall => Ball.None;
     public bool IsShiny => false;
-    public ushort EggLocation => 0;
+    ushort ILocation.EggLocation => 0;
     public byte FlawlessIVCount { get; init; }
     public byte LevelMin => Level;
     public byte LevelMax => Level;
 
-    public const byte NoScale = 0;
-    public bool NoScalarsDefined => Size == NoScale;
+    private const byte NoScale = 0;
+    private bool NoScalarsDefined => Size == NoScale;
 
     public Moveset Moves { get; init; }
     public IndividualValueSet IVs { get; init; }
@@ -101,7 +101,7 @@ public sealed record EncounterStatic9a(ushort Species, byte Form, byte Level, by
     private void SetMoves(PA9 pk, PersonalInfo9ZA pi, byte level)
     {
         var (learn, plus) = LearnSource9ZA.GetLearnsetAndPlus(Species, Form);
-        PlusRecordApplicator.SetPlusFlagsEncounter(pk, pi, plus, level);
+        pk.SetPlusFlagsEncounter(pi, plus, level);
         if (Moves.HasMoves)
         {
             pk.SetMoves(Moves);
@@ -111,7 +111,7 @@ public sealed record EncounterStatic9a(ushort Species, byte Form, byte Level, by
         Span<ushort> moves = stackalloc ushort[4];
         learn.SetEncounterMovesBackwards(level, moves, sameDescend: false);
         if (pk.IsAlpha)
-            PlusRecordApplicator.SetPlusFlagsSpecific(pk, pi, moves[0] = pi.AlphaMove);
+            pk.SetPlusFlagsSpecific(pi, moves[0] = pi.AlphaMove);
         pk.SetMoves(moves);
     }
 
@@ -125,7 +125,7 @@ public sealed record EncounterStatic9a(ushort Species, byte Form, byte Level, by
             return false;
         if (Gender != FixedGenderUtil.GenderRandom && pk.Gender != Gender)
             return false;
-        if (!IsMatchEggLocation(pk))
+        if (!this.IsMatchEggLocation(pk))
             return false;
         if (!IsMatchLocation(pk))
             return false;
@@ -135,7 +135,7 @@ public sealed record EncounterStatic9a(ushort Species, byte Form, byte Level, by
             return false;
         if (FlawlessIVCount != 0 && pk.FlawlessIVCount < FlawlessIVCount)
             return false;
-        if (Nature.IsFixed() && pk.Nature != Nature)
+        if (Nature.IsFixed && pk.Nature != Nature)
             return false;
         if (pk is IAlphaReadOnly a && a.IsAlpha != IsAlpha)
             return false;
@@ -143,7 +143,6 @@ public sealed record EncounterStatic9a(ushort Species, byte Form, byte Level, by
         return true;
     }
 
-    private bool IsMatchEggLocation(PKM pk) => pk.EggLocation == EggLocation;
     private bool IsMatchLocation(PKM pk)
     {
         var loc = pk.MetLocation;

@@ -1,7 +1,8 @@
 0318	s	Saturno derrotado en Caverna Valor/Lago Veraz Restaurado
 0350	s	Agua del Lago Valor Restaurada/Se puede obtener entrada de Palkia/Dialga en Pueblo Caelestis
+0214	s	Misión de Montaña Dura completada
 0351	r	Dialga/Palkia capturado
-0482	s	Dialga/Palkia desaparecido del Columna Lanza
+0482	r	Dialga/Palkia desaparecido del Columna Lanza
 0511	r	Uxie desaparecido
 0295	r	Uxie capturado
 0509	r	Mesprit desaparecido (Caverna Veraz)
@@ -34,14 +35,16 @@
 2410	a	Maestro de Concurso de Dulzura
 2411	a	Maestro de Concurso de Ingenio
 2412	a	Maestro de Concurso de Dureza
+2444	a	Conectó a la Conexión Wi-Fi de Nintendo
 0329	r	Rotom capturado
 0665	s	Encontrado Mayordomo Fantasma en la Vieja Mansión
 0666	s	Encontrada Niña Fantasma en la Vieja Mansión
-0897	s	Encontrado Antidoto (escondido) en la Vieja Mansión
-1008	s	Encontrada Barrita Plus en la Vieja Mansión
-1023	s	Found Adamant/Lustrous Orb in Spear Pillar
-1233	s	Encontrada Tabla Oscura en la Vieja Mansión
-1234	s	Encontrada MT90 en la Vieja Mansión
+0897	h	Encontrado Antidoto (escondido) en la Vieja Mansión
+1008	i	Encontrada Barrita Plus en la Vieja Mansión
+1023	i	Found Adamant/Lustrous Orb in Spear Pillar
+1233	i	Encontrada Tabla Oscura en la Vieja Mansión
+1234	i	Encontrada MT90 en la Vieja Mansión
+0304	i	MT64 recibido
 2401	*	Deportivas deshabilitadas
 2433	s	Se desbloqueó la segunda revancha contra los entrenadores
 0251	g	Huevo Happiny de regalo recibido
@@ -56,7 +59,19 @@
 0134	g	Intercambio en Ciudad Vetusta
 0244	g	Intercambio en Ciudad Puntaneva
 0245	g	Intercambio en Ruta 226
-0787	s	Más PP encontrado en Lago Valor seco
+0330	g	Globo terráqueo recibido (Sr. Curiosidades)
+0331	g	Estatua Gimnasio recibida (Sr. Curiosidades)
+0332	g	Copa Dulzura recibida (Sr. Curiosidades)
+0333	g	Copa Carisma recibida (Sr. Curiosidades)
+0334	g	Copa Belleza recibida (Sr. Curiosidades)
+0335	g	Copa Dureza recibida (Sr. Curiosidades)
+0336	g	Copa Ingenio recibida (Sr. Curiosidades)
+0337	g	Cristal Azul recibido (Sr. Curiosidades)
+0338	g	Cristal Rosa recibido (Sr. Curiosidades)
+0339	g	Cristal Rojo recibido (Sr. Curiosidades)
+0340	g	Cristal Amarillo recibido (Sr. Curiosidades)
+0347	g	Todos los objetos recibidos (Sr. Curiosidades)
+0787	h	Más PS (escondida) encontrado en Lago Valor seco
 2507	s	Participado en las capturas del Parque Compi
 1409	t	Corredor Romén derrotado (Mañana)
 1448	t	Policía Iñaki derrotado (Noche)
@@ -218,5 +233,5 @@
 2134	t	1ra revancha contra Veteran Brian
 2136	t	2da revancha contra Veteran Brian
 2137	t	Revancha contra Veterano Armando
-2733	s	Frase de moda aprendida (Hoy)
+2733	*	Frase de moda aprendida (Hoy)
 2738	t	Rival derrotado en Zona Combate (Sábado/Domingo actual)

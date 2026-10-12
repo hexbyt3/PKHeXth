@@ -152,7 +152,7 @@ public partial class SAV_Database : Form
         };
         CB_Format.Items[0] = MsgAny;
         CenterToParent();
-        Closing += (_, _) => ShowSet.Clear();
+        FormClosing += (_, _) => ShowSet.Clear();
         CB_Species.Select();
     }
 
@@ -212,7 +212,7 @@ public partial class SAV_Database : Form
         {
             // Data from Box: Delete from save file
             var exist = b.Read(SAV);
-            if (!exist.DecryptedBoxData.SequenceEqual(pk.DecryptedBoxData)) // data modified already?
+            if (!exist.EqualsStored(pk)) // data modified already?
             {
                 WinFormsUtil.Error(MsgDBDeleteFailModified, MsgDBDeleteFailWarning);
                 return;
@@ -251,7 +251,9 @@ public partial class SAV_Database : Form
             return;
         }
 
-        File.WriteAllBytes(path, pk.DecryptedBoxData);
+        Span<byte> data = stackalloc byte[pk.SIZE_STORED];
+        pk.WriteDecryptedDataStored(data);
+        File.WriteAllBytes(path, data);
 
         var info = new SlotInfoFileSingle(path);
         var entry = new SlotCache(info, pk);
@@ -511,8 +513,14 @@ public partial class SAV_Database : Form
         string path = fbd.SelectedPath;
         Directory.CreateDirectory(path);
 
+        Span<byte> data = stackalloc byte[SAV.SIZE_PARTY];
         foreach (var pk in Results.Select(z => z.Entity))
-            File.WriteAllBytes(Path.Combine(path, PathUtil.CleanFileName(pk.FileName)), pk.DecryptedPartyData);
+        {
+            var fileName = Path.Combine(path, PathUtil.CleanFileName(pk.FileName));
+            pk.ForcePartyData();
+            pk.WriteDecryptedDataParty(data);
+            File.WriteAllBytes(fileName, data);
+        }
     }
 
     private void Menu_Import_Click(object sender, EventArgs e)
@@ -553,8 +561,8 @@ public partial class SAV_Database : Form
     {
         var settings = new SearchSettings
         {
-            Format = (byte)(MAXFORMAT - CB_Format.SelectedIndex + 1), // 0->(n-1) => 1->n
-            SearchFormat = (SearchComparison)CB_FormatComparator.SelectedIndex,
+            Context = CB_Format.SelectedIndex == 0 ? EntityContext.None : (EntityContext)(MAXFORMAT - CB_Format.SelectedIndex + 1), // 0->(n-1) => 1->n
+            SearchContext = (SearchComparison)CB_FormatComparator.SelectedIndex,
             Generation = (byte)CB_Generation.SelectedIndex,
 
             Version = (GameVersion)WinFormsUtil.GetIndex(CB_GameOrigin),

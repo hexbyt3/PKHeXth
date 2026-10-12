@@ -76,5 +76,5 @@ public interface IBattleTemplate : ISpeciesForm, IGigantamaxReadOnly, IDynamaxLe
     /// <summary>
     /// Checks if the properties are probably from a Pokémon Champions set.
     /// </summary>
-    bool IsChampions => Level == 50 && !((ReadOnlySpan<int>)IVs).ContainsAnyExcept(31) && EffortValues.IsChampions(EVs);
+    bool IsChampions => Level == 50 && !IVs.ContainsAnyExcept(31) && EffortValues.IsChampions(EVs);
 }

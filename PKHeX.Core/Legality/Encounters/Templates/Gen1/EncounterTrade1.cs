@@ -18,8 +18,8 @@ public sealed record EncounterTrade1 : IEncounterable, IEncounterMatch, IFixedTr
     public AbilityPermission Ability => Species == (ushort)Core.Species.Haunter ? AbilityPermission.OnlyFirst : AbilityPermission.OnlyHidden;
     public Shiny Shiny => Shiny.Random;
     public bool IsShiny => false;
-    public ushort Location => 0;
-    public ushort EggLocation => 0;
+    ushort ILocation.Location => 0;
+    ushort ILocation.EggLocation => 0;
     public bool IsFixedTrainer => true;
     public bool IsFixedNickname => true;
 
@@ -64,7 +64,7 @@ public sealed record EncounterTrade1 : IEncounterable, IEncounterMatch, IFixedTr
         if (pk.Format > 2 && Version == GameVersion.YW && Species == (int)Core.Species.Dugtrio)
             return nick is HiraganaDugtrio7;
         // Otherwise, must match the Japanese nickname exactly.
-        return nick.SequenceEqual(Nicknames.Span[(int)LanguageID.Japanese]);
+        return Nicknames.Span[(int)LanguageID.Japanese].SequenceEqual(nick);
     }
 
     private static bool IsTrainerNameValid(PKM pk)

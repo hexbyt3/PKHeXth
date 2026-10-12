@@ -74,7 +74,7 @@ public partial class SAV_SecretBase3 : Form
                 TB_PID.Text = uint.MaxValue.ToString("X8");
         };
 
-        Manager = ((IGen3Hoenn)SAV).SecretBases;
+        Manager = ((ISaveBlock3LargeHoenn)SAV.LargeBlock).SecretBases;
         LB_Bases.InitializeBinding();
         LB_Bases.DataSource = Manager.Bases;
         LB_Bases.DisplayMember = "OriginalTrainerName";

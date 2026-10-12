@@ -49,71 +49,101 @@ public interface ITrainerID32ReadOnly : ITrainerID16ReadOnly
 
 public static class ITrainerID32Extensions
 {
-    /// <summary>
-    /// Checks if the <see cref="pid"/> is shiny when owned by the <see cref="ITrainerID32"/>.
-    /// </summary>
-    /// <param name="tr">Possessing trainer</param>
-    /// <param name="pid"><see cref="PKM.PID"/></param>
-    /// <param name="generation">Generation of origin.</param>
-    /// <returns>True if shiny, false if not.</returns>
-    public static bool IsShiny(this ITrainerID32 tr, uint pid, byte generation = 7)
-    {
-        var xor = GetShinyXor(tr, pid);
-        var threshold = (generation >= 7 ? ShinyXorThreshold7 : ShinyXorThreshold36);
-        return xor < threshold;
-    }
-
     private const int ShinyXorThreshold36 = 8; // 1:8192
     private const int ShinyXorThreshold7 = 16; // 1:4096
 
-    /// <summary>
-    /// Calculates the <see cref="pid"/> and <see cref="ITrainerID32.ID32"/> xor.
-    /// </summary>
-    public static uint GetShinyXor(this ITrainerID32 tr, uint pid) => (pid >> 16) ^ (pid & 0xFFFF) ^ tr.SID16 ^ tr.TID16;
-
-    public static uint GetTrainerTID7(this ITrainerID32 tr) => tr.ID32 % 1000000;
-    public static uint GetTrainerSID7(this ITrainerID32 tr) => tr.ID32 / 1000000;
-    public static uint SetTrainerTID7(this ITrainerID32 tr, uint value) => tr.ID32 = ((tr.ID32 / 1000000) * 1000000) + value;
-    public static uint SetTrainerSID7(this ITrainerID32 tr, uint value) => tr.ID32 = (value * 1000000) + (tr.ID32 % 1000000);
-    public static uint SetTrainerID16(this ITrainerID32 tr, ushort tid16, ushort sid16) => tr.ID32 = ((uint)sid16 << 16) | tid16;
-    public static uint SetTrainerID7(this ITrainerID32 tr, uint sid7, uint tid7) => tr.ID32 = (sid7 * 1000000) + tid7;
-
-    public static uint GetDisplayTID(this ITrainerID32 tr) => tr.TrainerIDDisplayFormat switch
+    extension(ITrainerID32 tr)
     {
-        SixDigit => GetTrainerTID7(tr),
-        _ => tr.TID16,
-    };
-
-    public static uint GetDisplaySID(this ITrainerID32 tr) => tr.TrainerIDDisplayFormat switch
-    {
-        SixDigit => GetTrainerSID7(tr),
-        _ => tr.SID16,
-    };
-
-    public static void SetDisplayTID(this ITrainerID32 tr, uint value)
-    {
-        switch (tr.TrainerIDDisplayFormat)
+        /// <summary>
+        /// Checks if the <see cref="pid"/> is shiny when owned by the <see cref="ITrainerID32"/>.
+        /// </summary>
+        /// <param name="pid"><see cref="PKM.PID"/></param>
+        /// <param name="generation">Generation of origin.</param>
+        /// <returns>True if shiny, false if not.</returns>
+        public bool IsShiny(uint pid, byte generation = 7)
         {
-            case SixDigit: tr.SetTrainerTID7(value); break;
-            default: tr.TID16 = (ushort)value; break;
+            var xor = tr.GetShinyXor(pid);
+            var threshold = (generation >= 7 ? ShinyXorThreshold7 : ShinyXorThreshold36);
+            return xor < threshold;
         }
-    }
 
-    public static void SetDisplaySID(this ITrainerID32 tr, uint value)
-    {
-        switch (tr.TrainerIDDisplayFormat)
+        /// <summary>
+        /// Calculates the <see cref="pid"/> and <see cref="ITrainerID32.ID32"/> xor.
+        /// </summary>
+        public uint GetShinyXor(uint pid) => (pid >> 16) ^ (pid & 0xFFFF) ^ tr.SID16 ^ tr.TID16;
+
+        public uint GetTrainerTID7() => tr.ID32 % 1000000;
+        public uint GetTrainerSID7() => tr.ID32 / 1000000;
+        public uint SetTrainerTID7(uint value) => tr.ID32 = ((tr.ID32 / 1000000) * 1000000) + value;
+        public uint SetTrainerSID7(uint value) => tr.ID32 = (value * 1000000) + (tr.ID32 % 1000000);
+        public uint SetTrainerID16(ushort tid16, ushort sid16) => tr.ID32 = ((uint)sid16 << 16) | tid16;
+        public uint SetTrainerID7(uint sid7, uint tid7) => tr.ID32 = (sid7 * 1000000) + tid7; // overflow back to sid:0 on bad combination
+        public bool IsValidTrainerID7(uint sid7, uint tid7) => ((ulong)sid7 * 1_000_000) + tid7 <= uint.MaxValue;
+
+        public uint GetDisplayTID() => tr.TrainerIDDisplayFormat switch
         {
-            case SixDigit: tr.SetTrainerSID7(value); break;
-            default: tr.SID16 = (ushort)value; break;
+            SixDigit => tr.GetTrainerTID7(),
+            _ => tr.TID16,
+        };
+
+        public uint GetDisplaySID() => tr.TrainerIDDisplayFormat switch
+        {
+            SixDigit => tr.GetTrainerSID7(),
+            _ => tr.SID16,
+        };
+
+        public void SetDisplayTID(uint value)
+        {
+            switch (tr.TrainerIDDisplayFormat)
+            {
+                case SixDigit: tr.SetTrainerTID7(value); break;
+                default: tr.TID16 = (ushort)value; break;
+            }
         }
-    }
 
-    public static void SetDisplayID(this ITrainerID32 tr, uint tid, uint sid)
-    {
-        switch (tr.TrainerIDDisplayFormat)
+        public void SetDisplaySID(uint value)
         {
-            case SixDigit: tr.SetTrainerID7(sid, tid); break;
-            default: tr.SetTrainerID16((ushort)tid, (ushort)sid); break;
+            switch (tr.TrainerIDDisplayFormat)
+            {
+                case SixDigit: tr.SetTrainerSID7(value); break;
+                default: tr.SID16 = (ushort)value; break;
+            }
+        }
+
+        public void SetDisplayID(uint tid, uint sid)
+        {
+            switch (tr.TrainerIDDisplayFormat)
+            {
+                case SixDigit: tr.SetTrainerID7(sid, tid); break;
+                default: tr.SetTrainerID16((ushort)tid, (ushort)sid); break;
+            }
+        }
+
+        public string GetTextRepresentation()
+        {
+            var format = tr.TrainerIDDisplayFormat;
+            if (format is not SixteenBit)
+            {
+                var tid = tr.TID16.ToString(TrainerIDExtensions.TID16);
+                var sid = tr.SID16.ToString(TrainerIDExtensions.SID16);
+                return $"ID: {tid}/{sid}";
+            }
+
+            var id = tr.ID32;
+            var sid7 = (id / 1_000_000).ToString(TrainerIDExtensions.SID7);
+            var tid7 = (id % 1_000_000).ToString(TrainerIDExtensions.TID7);
+            return $"G7ID: ({sid7}){tid7}";
+        }
+
+        public uint GetTSV(byte generation)
+        {
+            if (tr.TrainerIDDisplayFormat is None)
+                return uint.MaxValue;
+
+            var xor = (uint)(tr.SID16 ^ tr.TID16);
+            if (generation <= 5)
+                return xor >> 3;
+            return xor >> 4;
         }
     }
 }

@@ -14,7 +14,7 @@ public sealed class SAV2 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
     public bool IsVirtualConsole => State.Exportable && Metadata.FileName is { } s && s.StartsWith("sav", StringComparison.Ordinal) && s.Contains(".dat"); // default to GB-Era for non-exportable
 
     public int SaveRevision => Japanese ? 0 : !Korean ? 1 : 2;
-    public string SaveRevisionString => (Japanese ? "J" : !Korean ? "U" : "K") + (IsVirtualConsole ? "VC" : "GB");
+    public string SaveRevisionString => (Japanese ? "-J" : !Korean ? "-U" : "-K") + (IsVirtualConsole ? " [VC]" : " [GB]");
     public bool Japanese { get; }
     public bool Korean { get; }
     public override int Language { get; set; }
@@ -242,8 +242,8 @@ public sealed class SAV2 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
     // Configuration
     protected override SAV2 CloneInternal() => new(GetFinalData(), (LanguageID)Language, Version);
 
-    protected override int SIZE_STORED => Japanese ? PokeCrypto.SIZE_2JLIST : PokeCrypto.SIZE_2ULIST;
-    protected override int SIZE_PARTY => SIZE_STORED;
+    public override int SIZE_STORED => Japanese ? PokeCrypto.SIZE_2JLIST : PokeCrypto.SIZE_2ULIST;
+    public override int SIZE_PARTY => SIZE_STORED;
     public override PK2 BlankPKM => new(jp: Japanese);
     public override Type PKMType => typeof(PK2);
 
@@ -325,13 +325,13 @@ public sealed class SAV2 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
         set { if (value.Length == StringLength) value.CopyTo(Data[(Offsets.Trainer1 + 2)..]); }
     }
 
-    public string Rival
+    public string RivalName
     {
         get => GetString(Data.Slice(Offsets.Rival, (Korean ? 2 : 1) * MaxStringLengthTrainer));
         set => SetString(Data.Slice(Offsets.Rival, (Korean ? 2 : 1) * MaxStringLengthTrainer), value, 8, StringConverterOption.Clear50);
     }
 
-    public Span<byte> RivalTrash
+    public Span<byte> RivalNameTrash
     {
         get => Data.Slice(Offsets.Rival, StringLength);
         set { if (value.Length == StringLength) value.CopyTo(Data[Offsets.Rival..]); }
@@ -539,23 +539,8 @@ public sealed class SAV2 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
         }
     }
 
-    public override IReadOnlyList<InventoryPouch> Inventory
-    {
-        get
-        {
-            var info = Version == GameVersion.C ? ItemStorage2.InstanceC : ItemStorage2.InstanceGS;
-            InventoryPouch[] pouch =
-            [
-                new InventoryPouchGB(InventoryType.TMHMs, info, 99, Offsets.PouchTMHM, 57),
-                new InventoryPouchGB(InventoryType.Items, info, 99, Offsets.PouchItem, 20),
-                new InventoryPouchGB(InventoryType.KeyItems, info, 99, Offsets.PouchKey, 26),
-                new InventoryPouchGB(InventoryType.Balls, info, 99, Offsets.PouchBall, 12),
-                new InventoryPouchGB(InventoryType.PCItems, info, 99, Offsets.PouchPC, 50),
-            ];
-            return pouch.LoadAll(Data);
-        }
-        set => value.SaveAll(Data);
-    }
+    private ItemStorage2 ItemInfo => Version == GameVersion.C ? ItemStorage2.InstanceC : ItemStorage2.InstanceGS;
+    public override PlayerBag2 Inventory => new(this, ItemInfo, Offsets);
 
     public ref byte DaycareFlagByte(int index)
     {
@@ -626,17 +611,14 @@ public sealed class SAV2 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
         SetString(span, deflated[..len], maxLen, StringConverterOption.Clear50);
     }
 
-    protected override PK2 GetPKM(byte[] data)
+    protected override PK2 GetPKM(Memory<byte> data)
     {
         if (data.Length == SIZE_STORED)
-            return PokeList2.ReadFromList(data, StringLength);
+            return PokeList2.ReadFromList(data.Span, StringLength);
         return new(data);
     }
 
-    protected override byte[] DecryptPKM(byte[] data)
-    {
-        return data;
-    }
+    protected override void DecryptPKM(Span<byte> data) { }
 
     // Pokédex
     protected override void SetDex(PKM pk)

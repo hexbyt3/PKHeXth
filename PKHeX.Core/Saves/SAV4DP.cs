@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace PKHeX.Core;
@@ -61,8 +60,8 @@ public sealed class SAV4DP : SAV4Sinnoh
         FashionCase = 0x4BA8;
         OFS_Record = 0x5F08;
         OFS_Chatter = 0x61CC;
+        OFS_GiftRibbons = 0x72C0;
         Geonet = 0x96D8;
-        WondercardFlags = 0xA6D0;
         OFS_HONEY = 0x72E4;
         OFS_UG_Stats = 0x3A2C;
         OFS_UG_Items = 0x42B0;
@@ -92,32 +91,13 @@ public sealed class SAV4DP : SAV4Sinnoh
     }
     #endregion
 
-    public override IReadOnlyList<InventoryPouch> Inventory
-    {
-        get
-        {
-            var info = ItemStorage4DP.Instance;
-            InventoryPouch[] pouch =
-            [
-                new InventoryPouch4(InventoryType.Items, info, 999, 0x624),
-                new InventoryPouch4(InventoryType.KeyItems, info, 1, 0x8B8),
-                new InventoryPouch4(InventoryType.TMHMs, info, 99, 0x980),
-                new InventoryPouch4(InventoryType.MailItems, info, 999, 0xB10),
-                new InventoryPouch4(InventoryType.Medicine, info, 999, 0xB40),
-                new InventoryPouch4(InventoryType.Berries, info, 999, 0xBE0),
-                new InventoryPouch4(InventoryType.Balls, info, 999, 0xCE0),
-                new InventoryPouch4(InventoryType.BattleItems, info, 999, 0xD1C),
-            ];
-            return pouch.LoadAll(General);
-        }
-        set => value.SaveAll(General);
-    }
+    public override PlayerBag4DP Inventory => new(this);
 
     public override int M { get => ReadUInt16LittleEndian(General[0x1238..]); set => WriteUInt16LittleEndian(General[0x1238..], (ushort)value); }
     public override int X { get => ReadUInt16LittleEndian(General[0x1240..]); set => WriteUInt16LittleEndian(General[0x1240..], (ushort)(X2 = value)); }
     public override int Y { get => ReadUInt16LittleEndian(General[0x1244..]); set => WriteUInt16LittleEndian(General[0x1244..], (ushort)(Y2 = value)); }
 
-    public override Span<byte> RivalTrash
+    public override Span<byte> RivalNameTrash
     {
         get => General.Slice(0x25A8, MaxStringLengthTrainer * 2);
         set { if (value.Length == MaxStringLengthTrainer * 2) value.CopyTo(General[0x25A8..]); }

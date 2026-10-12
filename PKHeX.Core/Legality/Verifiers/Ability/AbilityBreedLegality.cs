@@ -6,7 +6,7 @@ namespace PKHeX.Core;
 /// <summary>
 /// Tables used for <see cref="AbilityVerifier"/>
 /// </summary>
-public static class AbilityBreedLegality
+internal static class AbilityBreedLegality
 {
     private static ReadOnlySpan<byte> BanHidden5 =>
     [

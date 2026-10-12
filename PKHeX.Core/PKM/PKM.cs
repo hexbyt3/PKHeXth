@@ -11,7 +11,7 @@ namespace PKHeX.Core;
 /// Object representing a <see cref="PKM"/>'s data and derived properties.
 /// </summary>
 [DynamicallyAccessedMembers(PublicProperties | NonPublicProperties | PublicParameterlessConstructor)]
-public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILangNick, IGameValueLimit, INature, IFatefulEncounter, IStringConverter, ITrashIntrospection
+public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILangNick, IGameValueLimit, INature, IFatefulEncounter, IStringConverter, ITrashIntrospection, IContext
 {
     public abstract int SIZE_PARTY { get; }
     public abstract int SIZE_STORED { get; }
@@ -29,11 +29,6 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
     protected PKM(Memory<byte> data) => Raw = data;
     protected PKM([ConstantExpected] int size) => Raw = new byte[size];
 
-    public virtual byte[] EncryptedPartyData => Encrypt().AsSpan()[..SIZE_PARTY].ToArray();
-    public virtual byte[] EncryptedBoxData => Encrypt().AsSpan()[..SIZE_STORED].ToArray();
-    public virtual byte[] DecryptedPartyData => Write()[..SIZE_PARTY].ToArray();
-    public virtual byte[] DecryptedBoxData => Write()[..SIZE_STORED].ToArray();
-
     /// <summary>
     /// Rough indication if the data is junk or not.
     /// </summary>
@@ -49,16 +44,60 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
     /// </summary>
     public virtual void PrepareNickname() { }
 
-    protected abstract byte[] Encrypt();
     public abstract EntityContext Context { get; }
-    public byte Format => Context.Generation();
+    public byte Format => Context.Generation;
     public TrainerIDFormat TrainerIDDisplayFormat => this.GetTrainerIDFormat();
 
-    private Span<byte> Write()
+    /// <summary> Writes the entity data to a sequential (stored only, no party stats) buffer destination. </summary>
+    public virtual int WriteDecryptedDataStored(Span<byte> destination)
     {
         RefreshChecksum();
-        return Data;
+        int length = SIZE_STORED;
+        Data[..length].CopyTo(destination);
+        return length;
     }
+
+    /// <summary> Writes the entity data to a sequential (stored, party) buffer destination. </summary>
+    public virtual void WriteDecryptedDataParty(Span<byte> destination)
+    {
+        var stored = destination[..SIZE_STORED];
+        var party = destination[SIZE_STORED..SIZE_PARTY];
+        WriteDecryptedDataParty(stored, party);
+    }
+
+    /// <summary> Writes the entity data to a separate (stored, party) buffer destination. </summary>
+    public virtual void WriteDecryptedDataParty(Span<byte> stored, Span<byte> party)
+    {
+        WriteDecryptedDataStored(stored);
+        Data[SIZE_STORED..SIZE_PARTY].CopyTo(party);
+    }
+
+    /// <summary> Writes the entity data to a sequential (stored only, no party stats) buffer destination and encrypts to the at-rest state. </summary>
+    public virtual void WriteEncryptedDataStored(Span<byte> destination)
+    {
+        var stored = destination[..SIZE_STORED];
+        WriteDecryptedDataStored(stored);
+        EncryptStored(stored);
+    }
+
+    /// <summary> Writes the entity data to a sequential (stored, party) buffer destination and encrypts to the at-rest state. </summary>
+    public virtual void WriteEncryptedDataParty(Span<byte> destination)
+    {
+        var stored = destination[..SIZE_STORED];
+        var party = destination[SIZE_STORED..SIZE_PARTY];
+        WriteEncryptedDataParty(stored, party);
+    }
+
+    /// <summary> Writes the entity data to a separate (stored, party) buffer destination and encrypts to the at-rest state. </summary>
+    public virtual void WriteEncryptedDataParty(Span<byte> stored, Span<byte> party)
+    {
+        WriteDecryptedDataParty(stored, party);
+        EncryptStored(stored);
+        EncryptParty(party);
+    }
+
+    protected abstract void EncryptStored(Span<byte> stored);
+    protected abstract void EncryptParty(Span<byte> party);
 
     // Surface Properties
     public abstract ushort Species { get; set; }
@@ -66,7 +105,7 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
     public abstract int HeldItem { get; set; }
     public abstract byte Gender { get; set; }
     public abstract Nature Nature { get; set; }
-    public virtual Nature StatNature { get => Nature; set => Nature = value; }
+    public virtual Nature StatAlignment { get => Nature; set => Nature = value; }
     public abstract int Ability { get; set; }
     public abstract byte CurrentFriendship { get; set; }
     public abstract byte Form { get; set; }
@@ -489,7 +528,7 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
     /// </summary>
     /// <param name="move">Move ID to add.</param>
     /// <param name="pushOut">If the current moveset is full, whether to push out the oldest move (index 0) to add the new one.</param>
-    /// <returns></returns>
+    /// <returns>True if the move was added, false if not added.</returns>
     public bool AddMove(ushort move, bool pushOut = true)
     {
         if (move == 0 || move >= MaxMoveID || HasMove(move))
@@ -520,16 +559,6 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
         value[0] = Move1;
     }
 
-    public void SetMoves(Moveset value)
-    {
-        Move1 = value.Move1;
-        Move2 = value.Move2;
-        Move3 = value.Move3;
-        Move4 = value.Move4;
-        this.SetMaximumPPCurrent(value);
-        ClearPPUpsOnEmptySlots();
-    }
-
     public void SetMoves(ReadOnlySpan<ushort> value)
     {
         Move1 = value.Length > 0 ? value[0] : default;
@@ -537,34 +566,12 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
         Move3 = value.Length > 2 ? value[2] : default;
         Move4 = value.Length > 3 ? value[3] : default;
         this.SetMaximumPPCurrent(value);
-        ClearPPUpsOnEmptySlots();
-    }
-
-    /// <summary>
-    /// A new moveset can be shorter than the one it replaces (e.g. a batch
-    /// <c>$suggestAll</c> on a Pokémon that knows fewer than four moves). PP Ups
-    /// left behind on an emptied slot fail legality ("PP Ups is above the amount allowed").
-    /// </summary>
-    private void ClearPPUpsOnEmptySlots()
-    {
-        if (Move1 == 0) Move1_PPUps = 0;
-        if (Move2 == 0) Move2_PPUps = 0;
-        if (Move3 == 0) Move3_PPUps = 0;
-        if (Move4 == 0) Move4_PPUps = 0;
     }
 
     public ushort[] RelearnMoves
     {
         get => [RelearnMove1, RelearnMove2, RelearnMove3, RelearnMove4];
         set => SetRelearnMoves(value);
-    }
-
-    public void SetRelearnMoves(Moveset value)
-    {
-        RelearnMove1 = value.Move1;
-        RelearnMove2 = value.Move2;
-        RelearnMove3 = value.Move3;
-        RelearnMove4 = value.Move4;
     }
 
     public void SetRelearnMoves(ReadOnlySpan<ushort> value)
@@ -752,8 +759,8 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
         else
             LoadStats(stats, p, level);
 
-        // Amplify stats based on the stat nature.
-        NatureAmp.ModifyStatsForNature(stats, StatNature);
+        // Amplify stats based on the stat alignment.
+        StatAlignment.ModifyStatsForAlignment(stats);
     }
 
     private void LoadStats(Span<ushort> stats, IBaseStat p, IHyperTrain t, byte level)
@@ -898,12 +905,9 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
     public virtual void SetShiny()
     {
         var rnd = Util.Rand;
-        // A Gen 3-5 origin was shiny under the old xor < 8 rule. In a Gen 6+ format IsShiny accepts
-        // 8-15 too, but those PIDs get their top bit flipped on transfer, so EC = PID would be illegal.
-        bool pastGenOrigin = Format >= 6 && (Gen3 || Gen4 || Gen5);
         do PID = EntityPID.GetRandomPID(rnd, Species, Gender, Version, Nature, Form, PID);
-        while (pastGenOrigin ? ShinyXor >= 8 : !IsShiny);
-        if (pastGenOrigin)
+        while (!IsShiny);
+        if (Format >= 6 && (Gen3 || Gen4 || Gen5))
             EncryptionConstant = PID;
     }
 
@@ -1036,6 +1040,7 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
     /// Applies all shared properties from the current <see cref="PKM"/> to the <see cref="result"/> <see cref="PKM"/>.
     /// </summary>
     /// <param name="result"><see cref="PKM"/> that receives property values.</param>
+    [RequiresUnreferencedCode("Copies format-specific PKM properties via reflection for unsupported cross-format conversions.")]
     public void TransferPropertiesWithReflection(PKM result)
     {
         // Only transfer declared properties not defined in PKM.cs but in the actual type
@@ -1064,16 +1069,16 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
         foreach (var property in shared)
         {
             // Setter sanity check: a derived type may not implement a setter if its parent type has one.
-            if (!BatchEditing.TryGetHasProperty(result, property, out var pi))
+            if (!EntityBatchEditor.Instance.TryGetHasProperty(result, property, out var pi))
                 continue;
             if (!pi.CanWrite)
                 continue;
 
             // Fetch the current value.
-            if (!BatchEditing.TryGetHasProperty(this, property, out var src))
+            if (!EntityBatchEditor.Instance.TryGetHasProperty(this, property, out var src))
                 continue;
             var prop = src.GetValue(this);
-            if (prop is byte[] or null)
+            if (prop is byte[] or Memory<byte> or null)
                 continue; // not a valid property transfer
             if (pi.PropertyType != src.PropertyType)
                 continue; // property type mismatch (not really a 1:1 shared property)
@@ -1204,4 +1209,23 @@ public abstract class PKM : ISpeciesForm, ITrainerID32, IGeneration, IShiny, ILa
         5 => IV_SPD,
         _ => throw new ArgumentOutOfRangeException(nameof(index), index, "IV index must be between 0 and 5."),
     };
+
+    /// <summary>
+    /// Checks if the current <see cref="PKM"/> has the same stored data as another <see cref="PKM"/>. This is used to check if a PKM has been modified from its original imported state.
+    /// </summary>
+    public virtual bool EqualsStored(PKM pk)
+    {
+        // Generally, the objects should be of the same derived type. Don't bother checking that explicitly.
+        if (pk.PID != PID)
+            return false;
+
+        var stored = pk.Data;
+        if (stored.Length >= pk.SIZE_STORED)
+            stored = stored[..SIZE_STORED];
+        var self = Data;
+        if (self.Length >= SIZE_STORED)
+            self = self[..SIZE_STORED];
+
+        return stored.SequenceEqual(self);
+    }
 }

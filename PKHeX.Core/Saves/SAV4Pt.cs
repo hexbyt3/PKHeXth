@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace PKHeX.Core;
@@ -66,8 +65,8 @@ public sealed class SAV4Pt : SAV4Sinnoh
         FashionCase = 0x4E38;
         OFS_Record = 0x61B0;
         OFS_Chatter = 0x64EC;
+        OFS_GiftRibbons = 0x7F10;
         Geonet = 0xA4C4;
-        WondercardFlags = 0xB4C0;
 
         OFS_HONEY = 0x7F38;
 
@@ -132,32 +131,13 @@ public sealed class SAV4Pt : SAV4Sinnoh
     }
     #endregion
 
-    public override IReadOnlyList<InventoryPouch> Inventory
-    {
-        get
-        {
-            var info = ItemStorage4Pt.Instance;
-            InventoryPouch[] pouch =
-            [
-                new InventoryPouch4(InventoryType.Items, info, 999, 0x630),
-                new InventoryPouch4(InventoryType.KeyItems, info, 1, 0x8C4),
-                new InventoryPouch4(InventoryType.TMHMs, info, 99, 0x98C),
-                new InventoryPouch4(InventoryType.MailItems, info, 999, 0xB1C),
-                new InventoryPouch4(InventoryType.Medicine, info, 999, 0xB4C),
-                new InventoryPouch4(InventoryType.Berries, info, 999, 0xBEC),
-                new InventoryPouch4(InventoryType.Balls, info, 999, 0xCEC),
-                new InventoryPouch4(InventoryType.BattleItems, info, 999, 0xD28),
-            ];
-            return pouch.LoadAll(General);
-        }
-        set => value.SaveAll(General);
-    }
+    public override PlayerBag4Pt Inventory => new(this);
 
     public override int M { get => ReadUInt16LittleEndian(General[0x1280..]); set => WriteUInt16LittleEndian(General[0x1280..], (ushort)value); }
     public override int X { get => ReadUInt16LittleEndian(General[0x1288..]); set => WriteUInt16LittleEndian(General[0x1288..], (ushort)(X2 = value)); }
     public override int Y { get => ReadUInt16LittleEndian(General[0x128C..]); set => WriteUInt16LittleEndian(General[0x128C..], (ushort)(Y2 = value)); }
 
-    public override Span<byte> RivalTrash
+    public override Span<byte> RivalNameTrash
     {
         get => RivalSpan;
         set { if (value.Length == MaxStringLengthTrainer * 2) value.CopyTo(RivalSpan); }

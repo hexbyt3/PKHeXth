@@ -17,7 +17,7 @@ public abstract class G3PKM : PKM, IRibbonSetEvent3, IRibbonSetCommon3, IRibbonS
     public sealed override ushort MaxMoveID => Legal.MaxMoveID_3;
     public sealed override ushort MaxSpeciesID => Legal.MaxSpeciesID_3;
     public sealed override int MaxAbilityID => Legal.MaxAbilityID_3;
-    public sealed override int MaxItemID => Legal.MaxItemID_3;
+    public sealed override int MaxItemID => Legal.MaxItemID_3_E;
     public sealed override int MaxBallID => Legal.MaxBallID_3;
     public sealed override GameVersion MaxGameID => Legal.MaxGameID_3;
     public sealed override int MaxIV => 31;
@@ -28,8 +28,7 @@ public abstract class G3PKM : PKM, IRibbonSetEvent3, IRibbonSetCommon3, IRibbonS
     // Generated Attributes
     public sealed override uint PSV => ((PID >> 16) ^ (PID & 0xFFFF)) >> 3;
     public sealed override uint TSV => (uint)(TID16 ^ SID16) >> 3;
-    public sealed override bool Japanese => Language == (int)LanguageID.Japanese;
-    public sealed override bool Korean => false; // even if language ID is hacked to Korean, don't return true (since it doesn't exist).
+    public sealed override bool Korean => false;
 
     public sealed override int Ability { get => PersonalInfo.GetAbility(AbilityBit); set { } }
     public sealed override uint EncryptionConstant { get => PID; set { } }

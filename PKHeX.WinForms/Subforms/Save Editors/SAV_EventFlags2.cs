@@ -100,8 +100,7 @@ public sealed partial class SAV_EventFlags2 : Form
         dgv.Columns.Add(cFlag);
         dgv.Columns.Add(cLabel);
 
-        var hideBelow = Main.Settings.Advanced.HideEventTypeBelow;
-        labels = labels.Where(z => z.Type >= hideBelow).OrderByDescending(z => z.Type).ToList();
+        labels = labels.OrderByDescending(z => z.Type).ToList();
         dgv.Rows.Add(labels.Count);
 
         for (int i = 0; i < labels.Count; i++)
@@ -157,13 +156,10 @@ public sealed partial class SAV_EventFlags2 : Form
             return;
         }
 
-        var hide = Main.Settings.Advanced.HideEventTypeBelow;
         labels = labels.OrderByDescending(z => z.Type).ToList();
         for (var i = 0; i < labels.Count; i++)
         {
             var entry = labels[i];
-            if (entry.Type < hide)
-                break;
             var lbl = new Label { Text = entry.Name, Margin = Padding.Empty, AutoSize = true };
             var mtb = new NumericUpDown
             {

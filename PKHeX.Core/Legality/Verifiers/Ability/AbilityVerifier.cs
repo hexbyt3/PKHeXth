@@ -1,3 +1,4 @@
+using System;
 using static PKHeX.Core.LegalityCheckResultCode;
 
 namespace PKHeX.Core;
@@ -58,7 +59,7 @@ public sealed class AbilityVerifier : Verifier
             {
                 // To determine AbilityNumber [PK5->PK6], check if the first ability in Personal matches the ability.
                 // It is not possible to flip it to the other index as capsule requires unique abilities.
-                if (abilities.GetIsAbility12Same() && bitNum != 1)
+                if (abilities.IsAbility12Same && bitNum != 1)
                 {
                     // Check if any pre-evolution could have it flipped.
                     var evos = data.Info.EvoChainsAllGens;
@@ -163,7 +164,7 @@ public sealed class AbilityVerifier : Verifier
         var pk = data.Entity;
         byte format = pk.Format;
         var state = AbilityState.MustMatch;
-        if (format is (3 or 4 or 5) && !abilities.GetIsAbility12Same()) // 3-4/5 and have 2 distinct abilities now
+        if (format is (3 or 4 or 5) && !abilities.IsAbility12Same) // 3-4/5 and have 2 distinct abilities now
             state = VerifyAbilityPreCapsule(data, abilities);
 
         var encounterAbility = enc.Ability;
@@ -430,7 +431,7 @@ public sealed class AbilityVerifier : Verifier
             var abit = g3.AbilityBit;
             // We've sanitized our personal data to replace "None" abilities with the first ability.
             // Granbull, Vibrava, and Flygon have dual abilities being the same.
-            if (abilities.GetIsAbility12Same() && g3.Species is not ((int)Species.Granbull or (int)Species.Vibrava or (int)Species.Flygon)) // Not a dual ability
+            if (abilities.IsAbility12Same && g3.Species is not ((int)Species.Granbull or (int)Species.Vibrava or (int)Species.Flygon)) // Not a dual ability
             {
                 // Must not have the Ability bit flag set.
                 // Shadow encounters set a random ability index; don't bother checking if it's a re-battle for ability bit flipping.
@@ -483,7 +484,7 @@ public sealed class AbilityVerifier : Verifier
     {
         if (format < 6) // Ability Capsule does not exist
             return false;
-        return !abilities.GetIsAbility12Same(); // Cannot alter ability index if it is the same as the other ability.
+        return !abilities.IsAbility12Same; // Cannot alter ability index if it is the same as the other ability.
     }
 
     public static bool CanAbilityPatch(byte format, IPersonalAbility12H abilities, ushort species)
@@ -492,7 +493,7 @@ public sealed class AbilityVerifier : Verifier
             return false;
 
         // Can alter ability index if it is different from the other abilities.
-        if (abilities.GetIsAbilityPatchPossible())
+        if (abilities.IsAbilityPatchPossible)
             return true;
 
         // Some species have a distinct hidden ability only on another form, and can change between that form and its current form.
@@ -510,6 +511,8 @@ public sealed class AbilityVerifier : Verifier
         var index = bitNum >> 1;
         var species = pa9.Species;
         var ability = pa9.Ability;
+
+        // In-battle forms allow mismatching for the current form.
         if (FormInfo.HasMegaForm(species) || species is (int)Species.Aegislash)
         {
             var form = pa9.Form;
@@ -540,7 +543,7 @@ public sealed class AbilityVerifier : Verifier
             var require = actual.GetAbilityAtIndex(index);
             if (ability == require)
                 return VALID;
-            if (enc.Species == species) // Not evolved after; must match.
+            if (enc.Species == species || IsAnyMoveSourceNotZA_Head(data.Info.Moves)) // Not evolved after; must match.
                 return GetInvalid(AbilityMismatch);
         }
 
@@ -556,8 +559,6 @@ public sealed class AbilityVerifier : Verifier
     {
         if (currentIndex == 2) // Not normally obtainable. Has to visit another game where it can be switched.
         {
-            if (enc.Ability.CanBeHidden())
-                return VALID; // Encounter itself permits hidden ability (e.g. Alpha in Z-A).
             if (AbilityChangeRules.IsAbilityPatchPossible(data.Info.EvoChainsAllGens))
                 return GetValid(AbilityPatchUsed);
             return GetInvalid(AbilityHiddenUnavailable);
@@ -574,5 +575,20 @@ public sealed class AbilityVerifier : Verifier
 
         // Can't change to current state.
         return GetInvalid(AbilityMismatch);
+    }
+
+    private static bool IsAnyMoveSourceNotZA_Head(ReadOnlySpan<MoveResult> infoMoves)
+    {
+        foreach (var info in infoMoves)
+        {
+            if (info.EvoStage != 0) // pre-evo
+                continue;
+            if (info.Context == EntityContext.Gen9a)
+                continue;
+
+            // move verifier doesn't check for realignment lockout scenario; disable check.
+            // return true;
+        }
+        return false;
     }
 }

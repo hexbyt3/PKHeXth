@@ -10,6 +10,7 @@ public partial class PartyEditor : UserControl, ISlotViewer<PictureBox>
 {
     public IList<PictureBox> SlotPictureBoxes { get; private set; } = [];
     public SaveFile SAV => M?.SE.SAV ?? throw new ArgumentNullException(nameof(SAV));
+    public void ApplyNewFilter(Func<PKM, bool>? filter, bool reload = true) { }
 
     public int BoxSlotCount { get; private set; }
     public SlotChangeManager? M { get; set; }

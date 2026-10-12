@@ -30,7 +30,7 @@ public static class StringConverter2
                 return false;
         }
         return true;
-        static bool IsJapanese(char c) => c is (>= '　' and <= 'ー') or ('？' or '！');
+        static bool IsJapanese(char c) => c is (>= '\u3000' and <= '\u30FC') or ('？' or '！');
     }
 
     public static bool GetIsEnglish(ReadOnlySpan<char> str) => !GetIsJapanese(str);
@@ -351,7 +351,7 @@ public static class StringConverter2
         return new string(inflated[..index]);
     }
 
-    private static bool TryGetLigatureIndex(char c, out int index) => -1 != (index = LigatureList.IndexOf(c));
+    private static bool TryGetLigatureIndex(char c, out int index) => (index = LigatureList.IndexOf(c)) != -1;
     private static ReadOnlySpan<char> LigatureList => [LI0, LI1, LI2, LI3, LI4, LI5, LI6, LI7, LI8, LI9, LIA, LIB];
     private static char GetLigature(int ligatureIndex) => LigatureList[ligatureIndex];
 

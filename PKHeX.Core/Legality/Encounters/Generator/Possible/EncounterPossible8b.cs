@@ -83,7 +83,7 @@ public record struct EncounterPossible8b(EvoCriteria[] Chain, EncounterTypeGroup
                     goto case YieldState.StaticVersion;
                 State = YieldState.Trade; goto case YieldState.Trade;
             case YieldState.Trade:
-                if (TryGetNext(Encounters8b.TradeGift_BDSPArray))
+                if (TryGetNext(Encounters8b.TradeGift_BDSP))
                     return true;
                 { Index = 0; goto case YieldState.StaticVersion; }
 
@@ -97,16 +97,16 @@ public record struct EncounterPossible8b(EvoCriteria[] Chain, EncounterTypeGroup
                 throw new ArgumentOutOfRangeException(nameof(Version));
 
             case YieldState.StaticVersionBD:
-                if (TryGetNext(Encounters8b.StaticBDArray))
+                if (TryGetNext(Encounters8b.StaticBD))
                     return true;
                 Index = 0; State = YieldState.StaticShared; goto case YieldState.StaticShared;
             case YieldState.StaticVersionSP:
-                if (TryGetNext(Encounters8b.StaticSPArray))
+                if (TryGetNext(Encounters8b.StaticSP))
                     return true;
                 Index = 0; State = YieldState.StaticShared; goto case YieldState.StaticShared;
 
             case YieldState.StaticShared:
-                if (TryGetNext(Encounters8b.Encounter_BDSPArray))
+                if (TryGetNext(Encounters8b.Encounter_BDSP))
                     return true;
                 Index = 0; goto case YieldState.SlotStart;
 
@@ -119,11 +119,11 @@ public record struct EncounterPossible8b(EvoCriteria[] Chain, EncounterTypeGroup
                 { State = YieldState.SlotSP; goto case YieldState.SlotSP; }
                 throw new ArgumentOutOfRangeException(nameof(Version));
             case YieldState.SlotBD:
-                if (TryGetNext(Encounters8b.SlotsBDArray))
+                if (TryGetNext(Encounters8b.SlotsBD))
                     return true;
                 goto case YieldState.SlotEnd;
             case YieldState.SlotSP:
-                if (TryGetNext(Encounters8b.SlotsSPArray))
+                if (TryGetNext(Encounters8b.SlotsSP))
                     return true;
                 goto case YieldState.SlotEnd;
             case YieldState.SlotEnd:

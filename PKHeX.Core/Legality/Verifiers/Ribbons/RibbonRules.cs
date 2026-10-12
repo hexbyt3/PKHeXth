@@ -33,10 +33,12 @@ public static class RibbonRules
         // Not available in Gen5
         { HasVisitedGen6: true } => true,
         { HasVisitedGen7: true } => true,
+        // No Ribbons in LGP/E
         { HasVisitedSWSH: true } => true,
         { HasVisitedBDSP: true } => true,
         // Not available in PLA
         { HasVisitedGen9: true } => true,
+        // No Ribbons in ZA
         _ => false,
     };
 
@@ -45,10 +47,12 @@ public static class RibbonRules
     /// </summary>
     public static bool IsRibbonValidBestFriends(PKM pk, EvolutionHistory evos) => evos switch
     {
-        { HasVisitedSWSH: true } => true, // Max Friendship
-        { HasVisitedBDSP: true } => true, // Max Friendship
-        { HasVisitedGen9: true } => true, // Max Friendship
+        // Via max Friendship, can be lowered afterwards.
+        { HasVisitedSWSH: true } => true,
+        { HasVisitedBDSP: true } => true,
+        { HasVisitedGen9: true } => true,
 
+        // Via max Affection, cannot be lowered afterwards. Property is not retained when transfered to Gen8+.
         { HasVisitedGen6: true } when pk is not PK6 { IsUntraded: true, OriginalTrainerAffection: < 255 } => true,
         { HasVisitedGen7: true } when pk is not PK7 { IsUntraded: true, OriginalTrainerAffection: < 255 } => true,
         _ => false,
@@ -66,9 +70,6 @@ public static class RibbonRules
         // Gen5: Can't obtain
         if (pk.Format < 6)
             return false;
-
-        // Gen6/7: Increase level by 30 from original level
-        static bool IsWellTraveled30(PKM pk) => pk.CurrentLevel - pk.MetLevel >= 30;
         if ((evos.HasVisitedGen6 || evos.HasVisitedGen7) && IsWellTraveled30(pk))
             return true;
 
@@ -87,12 +88,16 @@ public static class RibbonRules
 
         // Otherwise: Can't obtain
         return false;
+
+        // Increase level by 30 from original level (met level).
+        // Pokémon with a met level above 70 are thus ineligible for receiving the ribbon via this method.
+        static bool IsWellTraveled30(PKM pk) => (pk.CurrentLevel - pk.MetLevel) >= 30;
     }
 
     public static bool IsRibbonValidMasterRank(PKM pk, IEncounterTemplate enc, EvolutionHistory evos)
     {
         // Legends can compete in Ranked starting from Series 10.
-        // Past gen Pokemon can get the ribbon only if they've been reset.
+        // Past gen Pokémon can get the ribbon only if they've been reset.
         if (evos.HasVisitedSWSH && IsRibbonValidMasterRankSWSH(pk, enc))
             return true;
 
@@ -258,6 +263,21 @@ public static class RibbonRules
     }
 
     /// <summary>
+    /// Checks if the input can receive the <see cref="IRibbonSetEvent3.RibbonEarth"/> ribbon.
+    /// </summary>
+    /// <remarks>
+    /// If returns true, can have the ribbon. If returns false, must not have the ribbon.
+    /// </remarks>
+    public static bool IsEarthRibbonAllowed(PKM pk, IEncounterTemplate enc)
+    {
+        if (enc.Generation != 3)
+            return false;
+        if (!ParseSettings.AllowGBACrossTransferXD(pk))
+            return false;
+        return true;
+    }
+
+    /// <summary>
     /// Gets the max count values the input can receive for the <see cref="IRibbonSetMemory6.RibbonCountMemoryContest"/> and <see cref="IRibbonSetMemory6.RibbonCountMemoryBattle"/> ribbon counts.
     /// </summary>
     public static (byte Contest, byte Battle) GetMaxMemoryCounts(EvolutionHistory evos, PKM pk, IEncounterTemplate enc)
@@ -295,9 +315,11 @@ public static class RibbonRules
     /// <summary>
     /// Checks if the input evolution history could have participated in Generation 3 contests.
     /// </summary>
-    public static bool IsAllowedContest3(EvolutionHistory evos)
+    public static bool IsAllowedContest3(EvolutionHistory evos, PKM pk)
     {
         // Any species can enter contests in Gen3.
+        if (!ParseSettings.AllowGBACrossTransferRSE(pk))
+            return false;
         return evos.HasVisitedGen3;
     }
 

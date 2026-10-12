@@ -35,6 +35,26 @@ public static class EncounterUtil
         => BinLinkerAccessor16.Get(Get(resource), ident);
 
     /// <summary>
+    /// Retrieves the localization index list for all requested strings for the <see cref="fileName"/>.
+    /// </summary>
+    /// <param name="fileName">Base file name</param>
+    /// <param name="maxLanguage">Max language ID (inclusive)</param>
+    /// <remarks>Ignores Korean Language.</remarks>
+    public static string[][] GetLanguageStrings([ConstantExpected] string fileName, [ConstantExpected(Min = 6)] int maxLanguage)
+    {
+        var result = new string[maxLanguage + 1][];
+        result[0] = result[6] = []; // 0 - None, 6 - None
+        for (int i = 1; i <= 5; i++)
+            result[i] = Text(fileName, i);
+        for (int i = 7; i <= maxLanguage; i++)
+            result[i] = Text(fileName, i);
+        return result;
+
+        static string[] Text([ConstantExpected] string fileName, int language)
+            => Util.GetStringList(fileName, ((LanguageID)language).GetLanguageCode());
+    }
+
+    /// <summary>
     /// Grabs the localized names for individual templates for all languages from the specified <see cref="index"/> of the <see cref="names"/> list.
     /// </summary>
     /// <param name="names">Arrays of strings grouped by language</param>
@@ -181,5 +201,26 @@ public static class EncounterUtil
     {
         var pt = version == GameVersion.YW ? PersonalTable.Y : PersonalTable.RB;
         return pt[species];
+    }
+
+    /// <summary>
+    /// Gets the expected current egg location value for a given entity state and original location value.
+    /// </summary>
+    /// <param name="pk">Current entity state</param>
+    /// <param name="loc">Location value that is expected to be used for the egg location</param>
+    /// <returns>Expected egg location value</returns>
+    internal static ushort GetExpectedEggLocation<T>(T pk, ushort loc) where T : PKM
+    {
+        if (pk is PB8)
+            return Locations8b.GetLocationLocal(loc);
+        return loc;
+    }
+
+    internal static bool IsMatchEggLocation<TEnc, TEntity>(this TEnc enc, TEntity pk)
+        where TEnc : ILocation
+        where TEntity : PKM
+    {
+        var loc = GetExpectedEggLocation(pk, enc.EggLocation);
+        return loc == pk.EggLocation;
     }
 }

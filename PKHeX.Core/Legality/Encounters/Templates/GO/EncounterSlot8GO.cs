@@ -8,14 +8,15 @@ namespace PKHeX.Core;
 /// <inheritdoc cref="PogoSlotExtensions" />
 /// </summary>
 public sealed record EncounterSlot8GO(ushort DayStart, ushort DayEnd, ushort Species, byte Form, byte LevelMin, byte MinimumIV, Shiny Shiny, Gender Gender, PogoType Type, PogoBallRestriction BallRestrict, PogoImportFormat OriginFormat, PogoFlags Flags)
-    : IEncounterable, IEncounterMatch, IEncounterConvertible<PKM>, IPogoSlot, IFixedOTFriendship
+    : IEncounterable, IEncounterMatch, IEncounterConvertible<PKM>, IPogoSlot, IFixedOTFriendship, IEncounterServerDate
 {
     public byte Generation => 8;
+    public bool IsDateRestricted => true;
     public bool IsShiny => Shiny.IsShiny();
     public Ball FixedBall => BallRestrict.GetFixedBall();
     public bool IsEgg => false;
     public AbilityPermission Ability => AbilityPermission.Any12;
-    public ushort EggLocation => 0;
+    ushort ILocation.EggLocation => 0;
     public GameVersion Version => GameVersion.GO;
     public ushort Location => Locations.GO8;
     public byte LevelMax => EncountersGO.MAX_LEVEL;
@@ -189,7 +190,7 @@ public sealed record EncounterSlot8GO(ushort DayStart, ushort DayEnd, ushort Spe
         var nature = criteria.GetNature();
         var ability = criteria.GetAbilityFromNumber(Ability);
 
-        pk.Nature = pk.StatNature = nature;
+        pk.Nature = pk.StatAlignment = nature;
         pk.Gender = gender;
 
         pk.AbilityNumber = 1 << ability;
@@ -290,6 +291,8 @@ public sealed record EncounterSlot8GO(ushort DayStart, ushort DayEnd, ushort Spe
 
     private bool IsMatchPartial(PKM pk)
     {
+        if (!IsWithinDistributionWindow(pk))
+            return true;
         if (!this.GetIVsValid(pk))
             return true;
 
@@ -299,6 +302,14 @@ public sealed record EncounterSlot8GO(ushort DayStart, ushort DayEnd, ushort Spe
 
         return IsFormArgIncorrect(pk);
     }
+
+    public bool IsWithinDistributionWindow(PKM pk)
+    {
+        var date = new DateOnly(pk.MetYear + 2000, pk.MetMonth, pk.MetDay);
+        return IsWithinDistributionWindow(date);
+    }
+
+    public bool IsWithinDistributionWindow(DateOnly date) => this.IsWithinStartEnd(date);
 
     private bool IsFormArgIncorrect<T>(T pk) where T : ISpeciesForm => Species switch
     {

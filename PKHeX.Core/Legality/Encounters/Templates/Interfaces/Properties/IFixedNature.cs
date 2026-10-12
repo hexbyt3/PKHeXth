@@ -13,5 +13,5 @@ public interface IFixedNature
     /// <summary>
     /// Indicates if the nature is a single value (not random).
     /// </summary>
-    bool IsFixedNature => Nature.IsFixed();
+    bool IsFixedNature => Nature.IsFixed;
 }

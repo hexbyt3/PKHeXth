@@ -2,18 +2,18 @@
 Zaffiro
 Rubino
 Smeraldo
-RossoFuoco
-VerdeFoglia
+Rosso Fuoco
+Verde Foglia
 
-HeartGold
-SoulSilver
+Oro HeartGold
+Argento SoulSilver
 
 Diamante
 Perla
 Platino
 
 
-Colosseo/XD
+Colosseum/XD
 Battle Revolution
 
 

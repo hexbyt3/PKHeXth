@@ -70,15 +70,15 @@ public record struct EncounterEnumerator7GG(PKM Entity, EvoCriteria[] Chain, Gam
                 { State = YieldState.TradeGE; goto case YieldState.TradeGE; }
                 break;
             case YieldState.TradeGP:
-                if (TryGetNext(Encounters7GG.TradeGift_GPArray))
+                if (TryGetNext(Encounters7GG.TradeGift_GP))
                     return true;
                 Index = 0; State = YieldState.TradeShared; goto case YieldState.TradeShared;
             case YieldState.TradeGE:
-                if (TryGetNext(Encounters7GG.TradeGift_GEArray))
+                if (TryGetNext(Encounters7GG.TradeGift_GE))
                     return true;
                 Index = 0; State = YieldState.TradeShared; goto case YieldState.TradeShared;
             case YieldState.TradeShared:
-                if (TryGetNext(Encounters7GG.TradeGift_GGArray))
+                if (TryGetNext(Encounters7GG.TradeGift_GG))
                     return true;
                 break;
 
@@ -101,15 +101,15 @@ public record struct EncounterEnumerator7GG(PKM Entity, EvoCriteria[] Chain, Gam
                 goto case YieldState.Fallback; // already checked everything else
 
             case YieldState.StaticGP:
-                if (TryGetNext(Encounters7GG.StaticGPArray))
+                if (TryGetNext(Encounters7GG.StaticGP))
                     return true;
                 Index = 0; State = YieldState.StaticShared; goto case YieldState.StaticShared;
             case YieldState.StaticGE:
-                if (TryGetNext(Encounters7GG.StaticGEArray))
+                if (TryGetNext(Encounters7GG.StaticGE))
                     return true;
                 Index = 0; State = YieldState.StaticShared; goto case YieldState.StaticShared;
             case YieldState.StaticShared:
-                if (TryGetNext(Encounters7GG.Encounter_GGArray))
+                if (TryGetNext(Encounters7GG.Encounter_GG))
                     return true;
                 if (Yielded)
                     break;
@@ -124,11 +124,11 @@ public record struct EncounterEnumerator7GG(PKM Entity, EvoCriteria[] Chain, Gam
                 { State = YieldState.SlotGE; goto case YieldState.SlotGE; }
                 throw new ArgumentOutOfRangeException(nameof(Version));
             case YieldState.SlotGP:
-                if (TryGetNext<EncounterArea7b, EncounterSlot7b>(Encounters7GG.SlotsGPArray))
+                if (TryGetNext<EncounterArea7b, EncounterSlot7b>(Encounters7GG.SlotsGP))
                     return true;
                 goto case YieldState.Fallback; // already checked everything else
             case YieldState.SlotGE:
-                if (TryGetNext<EncounterArea7b, EncounterSlot7b>(Encounters7GG.SlotsGEArray))
+                if (TryGetNext<EncounterArea7b, EncounterSlot7b>(Encounters7GG.SlotsGE))
                     return true;
                 if (Yielded)
                     break;

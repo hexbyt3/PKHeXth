@@ -62,11 +62,6 @@ public static class HomeQuirks
     /// During this process, it will copy the Scale value into the <see cref="IScaledSize.HeightScalar"/> value.
     /// If the entity has a HOME tracker, we can be sure that it was modified by HOME.
     /// </summary>
-    /// <param name="pk"></param>
-    /// <param name="value"></param>
-    /// <param name="s2"></param>
-    /// <param name="s3"></param>
-    /// <returns></returns>
     public static bool IsTouchedScaleCopiedOrUntouched(PKM pk, byte value, IScaledSize s2, IScaledSize3 s3)
     {
         // HOME copies Scale to Height. Untouched by HOME must match the value.
@@ -77,7 +72,6 @@ public static class HomeQuirks
             return false;
         return s2.HeightScalar == value;
     }
-
 
     /// <summary>
     /// Checks if the <see cref="WC9"/> Hisuian Zoroark was erroneously updated by HOME to have 255-255 scale values.

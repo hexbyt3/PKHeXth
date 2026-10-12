@@ -122,6 +122,6 @@ public static class VirtualConsolePP
         var expectName = SpeciesName.GetSpeciesName(species, (int)language);
         var currentLength = TrashBytesUTF16.GetStringLength(trash) + 1; // terminator
         var match = TrashBytesUTF16.IsUnderlayerPresent(expectName, trash, currentLength);
-        return !match.IsInvalid();
+        return !match.IsInvalid;
     }
 }

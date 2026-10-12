@@ -10,15 +10,15 @@ namespace PKHeX.Core;
 /// </summary>
 public abstract class SAV5 : SaveFile, ISaveBlock5BW, IEventFlagProvider37, IBoxDetailName, IBoxDetailWallpaper, IDaycareRandomState<ulong>, IDaycareStorage, IDaycareExperience, IDaycareEggState, IMysteryGiftStorageProvider
 {
-    protected override PK5 GetPKM(byte[] data) => new(data);
-    protected override byte[] DecryptPKM(byte[] data) => PokeCrypto.DecryptArray45(data);
+    protected override PK5 GetPKM(Memory<byte> data) => new(data);
+    protected override void DecryptPKM(Span<byte> data) => PokeCrypto.Decrypt45(data);
 
     protected internal override string ShortSummary => $"{OT} ({Version}) - {PlayTimeString}";
     public override string Extension => ".sav";
 
     public override ReadOnlySpan<ushort> HeldItems => Legal.HeldItems_BW;
-    protected override int SIZE_STORED => PokeCrypto.SIZE_5STORED;
-    protected override int SIZE_PARTY => PokeCrypto.SIZE_5PARTY;
+    public override int SIZE_STORED => PokeCrypto.SIZE_5STORED;
+    public override int SIZE_PARTY => PokeCrypto.SIZE_5PARTY;
     public override PK5 BlankPKM => new();
     public override Type PKMType => typeof(PK5);
 
@@ -108,9 +108,8 @@ public abstract class SAV5 : SaveFile, ISaveBlock5BW, IEventFlagProvider37, IBox
     public override int PlayedMinutes { get => PlayerData.PlayedMinutes; set => PlayerData.PlayedMinutes = value; }
     public override int PlayedSeconds { get => PlayerData.PlayedSeconds; set => PlayerData.PlayedSeconds = value; }
     public override uint Money { get => Misc.Money; set => Misc.Money = value; }
-    public override uint SecondsToStart { get => AdventureInfo.SecondsToStart; set => AdventureInfo.SecondsToStart = value; }
-    public override uint SecondsToFame  { get => AdventureInfo.SecondsToFame; set => AdventureInfo.SecondsToFame  = value; }
-    public override IReadOnlyList<InventoryPouch> Inventory { get => Items.Inventory; set => Items.Inventory = value; }
+    public override uint SecondsToStart { get => (uint)AdventureInfo.SecondsToStart; set => AdventureInfo.SecondsToStart = value; }
+    public override uint SecondsToFame  { get => (uint)AdventureInfo.SecondsToFame; set => AdventureInfo.SecondsToFame  = value; }
 
     protected override void SetDex(PKM pk) => Zukan.SetDex(pk);
     public override bool GetCaught(ushort species) => Zukan.GetCaught(species);
@@ -214,6 +213,13 @@ public abstract class SAV5 : SaveFile, ISaveBlock5BW, IEventFlagProvider37, IBox
         ArgumentOutOfRangeException.ThrowIfNotEqual(data.Length, size);
         SetData(data, offset);
 
+        return RefreshExtSectionFooter(offset, size, count);
+    }
+
+    private ushort RefreshExtSectionFooter(int offset, int size, ushort count)
+    {
+        var data = Data.Slice(offset, size);
+
         // Update Tail Section
         ushort chk = Checksums.CRC16_CCITT(data);
         var tail = Data[(offset + size)..];
@@ -293,8 +299,9 @@ public abstract class SAV5 : SaveFile, ISaveBlock5BW, IEventFlagProvider37, IBox
     public void SetPokeDexSkin(ReadOnlySpan<byte> data, ushort count = 1)
     {
         WriteExtSection(data, ExtPokeDexSkinOffset, PokeDexSkin5.SIZE, count);
+        IsAvailablePokedexSkin = true; // checksum might be changed via this, need to refresh footer to be safe
+        RefreshExtSectionFooter(ExtPokeDexSkinOffset, PokeDexSkin5.SIZE, count);
         PlayerData.UpdateExtData(ExtDataSectionNote5.PokedexSkin, count);
-        IsAvailablePokedexSkin = true;
     }
 
     private Span<byte> DexSkinFooter => Data.Slice(ExtPokeDexSkinOffset + PokeDexSkin5.SIZE - 4, 4);
