@@ -157,6 +157,10 @@ internal static class BatchModifications
 
     public static ModifyResult SetEVs(PKM pk)
     {
+        // LGPE does not use EVs; only AVs. EVs must remain zero.
+        if (pk is PB7)
+            return ModifyResult.Skipped;
+
         Span<int> evs = stackalloc int[6];
         EffortValues.SetMax(evs, pk);
         Span<int> current = stackalloc int[6];
