@@ -103,6 +103,11 @@ public sealed record EncounterStatic8U : EncounterStatic8Nest<EncounterStatic8U>
         return new GenerateParam8(Species, ratio, FlawlessIVCount, Ability, ShinyMethod, Nature.Random, IVs);
     }
 
+    // Seed verification must also use forceNoShiny to match the Shiny.Never generation behavior.
+    // Without this, seeds where the raw PID is shiny relative to the generated trID would produce
+    // a PID mismatch between generation and verification.
+    protected override bool IsMatchSeed(PKM pk, ulong seed) => Verify(pk, seed, forceNoShiny: true);
+
     // no downleveling, unlike all other raids
     protected override bool IsMatchLevel(PKM pk) => pk.MetLevel == Level;
     protected override bool IsMatchLocation(PKM pk) => Location == pk.MetLocation;
