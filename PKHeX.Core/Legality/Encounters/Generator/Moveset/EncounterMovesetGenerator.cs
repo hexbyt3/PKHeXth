@@ -114,8 +114,6 @@ public static class EncounterMovesetGenerator
         for (int i = 0; i < versions.Length; i++)
         {
             var version = versions.Span[i];
-            if (version.Context is EntityContext.None)
-                continue;
             foreach (var enc in GenerateVersionEncounters(pk, moves, version))
                 yield return enc;
         }
@@ -130,6 +128,10 @@ public static class EncounterMovesetGenerator
     /// <returns>A consumable <see cref="IEncounterable"/> list of possible encounters.</returns>
     private static IEnumerable<IEncounterable> GenerateVersionEncounters(PKM pk, ReadOnlyMemory<ushort> moves, GameVersion version)
     {
+        // Fork: upstream (89722b7e7) skipped versions without game data (e.g. WI/WA) in only one public overload;
+        // the ITrainerInfo and params overloads (ALM, BulkGenerator) still threw on EntityContext.None. Skip them here for all.
+        if (version.Context is EntityContext.None)
+            return [];
         pk.Version = version;
         if (version is GameVersion.GO)
             return GenerateVersionEncountersGO(pk, moves);
