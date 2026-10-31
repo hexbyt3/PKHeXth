@@ -54,6 +54,7 @@ public static class HomeConverter
         core.FatefulEncounter = GetIsFatefulFRLG(species);
         core.Version = version;
         core.Language = language;
+        core.OriginalTrainerGender = pk3.OriginalTrainerGender; // Fork: upstream drops it, so female-OT FR/LG transfers came out male-OT.
         var id32 = core.ID32 = pk3.ID32;
 
         core.PID = GetTransferPID(ec, id32, out _);
