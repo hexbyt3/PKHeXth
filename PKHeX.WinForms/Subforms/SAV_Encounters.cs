@@ -150,7 +150,8 @@ public partial class SAV_Encounters : Form
 
     private void GetTypeFilters()
     {
-        var types = Enum.GetValues<EncounterTypeGroup>();
+        // None is the empty flag, not a kind of encounter; the generator throws if asked for it.
+        var types = Enum.GetValues<EncounterTypeGroup>().Where(z => z != EncounterTypeGroup.None);
         var checks = types.Select(z => new CheckBox
         {
             Name = z.ToString(),
@@ -478,9 +479,17 @@ public partial class SAV_Encounters : Form
             B_Search.Enabled = true;
             EncounterMovesetGenerator.ResetFilters();
         }
-        catch
+        catch (OperationCanceledException)
         {
-            // Ignore.
+            // Window closed mid-search.
+        }
+        catch (Exception ex)
+        {
+            EncounterMovesetGenerator.ResetFilters();
+            if (IsDisposed)
+                return;
+            B_Search.Enabled = true;
+            WinFormsUtil.Error("The search failed.", ex);
         }
     }
 

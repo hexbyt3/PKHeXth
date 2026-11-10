@@ -645,9 +645,16 @@ public partial class SAV_Database : Form
             System.Media.SystemSounds.Asterisk.Play();
             B_Search.Enabled = true;
         }
-        catch
+        catch (OperationCanceledException)
         {
-            // Ignore.
+            // Window closed mid-search.
+        }
+        catch (Exception ex)
+        {
+            if (IsDisposed)
+                return;
+            B_Search.Enabled = true;
+            WinFormsUtil.Error("The search failed.", ex);
         }
     }
 
