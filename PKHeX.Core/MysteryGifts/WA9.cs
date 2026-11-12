@@ -759,7 +759,7 @@ public sealed class WA9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
 
     protected override bool IsMatchDeferred(PKM pk) => false;
 
-    protected override bool IsMatchPartial(PKM pk) => !IsHOMEGift && TryGetSeed(pk, out _) != SeedCorrelationResult.Success;
+    protected override bool IsMatchPartial(PKM pk) => !IsHOMEGift && TryGetSeed(pk, out _) == SeedCorrelationResult.Invalid;
 
     #region Lazy Ribbon Implementation
 
@@ -913,10 +913,15 @@ public sealed class WA9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
         return false;
     }
 
-    public SeedCorrelationResult TryGetSeed(PKM pk, out ulong seed) =>
-        GetParams(PersonalTable.ZA[Species, Form]).TryGetSeed(pk, out seed)
-            ? SeedCorrelationResult.Success
-            : SeedCorrelationResult.Invalid;
+    public SeedCorrelationResult TryGetSeed(PKM pk, out ulong seed)
+    {
+        if (GetParams(PersonalTable.ZA[Species, Form]).TryGetSeed(pk, out seed))
+            return SeedCorrelationResult.Success;
+        // Fixed shiny states overwrite the rolled PID, so the seed can't be recovered from EC+PID.
+        if (PIDType is ShinyType8.AlwaysStar or ShinyType8.AlwaysSquare or ShinyType8.FixedValue)
+            return SeedCorrelationResult.Ignore;
+        return SeedCorrelationResult.Invalid;
+    }
 
     public LumioseCorrelation Correlation => LumioseCorrelation.SkipTrainer;
     public byte FlawlessIVCount => GetFlawlessIVCount(IV_HP);

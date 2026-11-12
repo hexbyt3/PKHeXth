@@ -372,6 +372,7 @@ public static class EncounterServerDate
         {1615, new(2026, 10, 28, 2026, 11, 19)}, // Spewpa
         {0105, new(2026, 10, 31, 2028, 02, 01)}, // PokéCenter Audino Birthday Gift (2026-27)
         {1616, new(2026, 11, 05, 2027, 02, 26, +1)}, // Poké Ball Pattern Vivillon, Vivillon Challenge reward
+        {1613, new(2026, 11, 11, 2027, 01, 08, +1)}, // Shiny Xerneas (CELEBRATE30TH), 11/12/2026 to 01/07/2027
 
         {0603, new(2026, 08, 28)}, // WCS 2026 Greninja
 

@@ -44,6 +44,7 @@ public class MysteryGiftWindowTests
     [Theory]
     [InlineData(0105, 2026, 10, 31, 2028, 02, 01)] // PokéCenter Audino
     [InlineData(1616, 2026, 11, 05, 2027, 02, 26)] // Poké Ball Pattern Vivillon
+    [InlineData(1613, 2026, 11, 11, 2027, 01, 08)] // Shiny Xerneas
     public void WA9GiftIsLegalOnlyInsideWindow(int cardID, int y0, int m0, int d0, int y1, int m1, int d1)
     {
         var card = EncounterEvent.MGDB_G9A.First(z => z.CardID == cardID);
@@ -57,6 +58,27 @@ public class MysteryGiftWindowTests
         var card = EncounterEvent.MGDB_G9.First(z => z.CardID == 0072);
         var tr = new SimpleTrainerInfo(GameVersion.SL) { Language = (byte)LanguageID.Japanese };
         CheckWindow(card.ConvertToPKM(tr), new(2026, 10, 31), new(2028, 02, 01));
+    }
+
+    // First fixed-shiny Z-A card: the star PID replaces the rolled one, so the seed check has to stand aside
+    // while the PID itself must still be the card's star value.
+    [Fact]
+    public void WA9ShinyXerneasStaysStarShiny()
+    {
+        var card = EncounterEvent.MGDB_G9A.First(z => z.CardID == 1613);
+        var tr = new SimpleTrainerInfo(GameVersion.ZA) { Language = (byte)LanguageID.English };
+        var pk = card.ConvertToPKM(tr);
+        pk.ShinyXor.Should().Be(1);
+        var la = new LegalityAnalysis(pk);
+        la.Valid.Should().BeTrue(la.Report());
+
+        var square = pk.Clone();
+        square.PID ^= 1u << 16;
+        new LegalityAnalysis(square).Valid.Should().BeFalse();
+
+        var plain = pk.Clone();
+        plain.PID ^= 0x1000_0000;
+        new LegalityAnalysis(plain).Valid.Should().BeFalse();
     }
 
     private static void CheckWindow(PKM pk, DateOnly first, DateOnly last)
