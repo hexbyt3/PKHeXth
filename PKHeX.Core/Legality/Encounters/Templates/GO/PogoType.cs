@@ -1,4 +1,6 @@
 using static PKHeX.Core.Ball;
+using static PKHeX.Core.PogoType;
+using static PKHeX.Core.PogoBallRestriction;
 
 namespace PKHeX.Core;
 
@@ -50,7 +52,6 @@ public enum PogoType : byte
     MaxBattle = 60,
     MaxBattleMythical,
     MaxBattleUltraBeast,
-    MaxBattleGigantamax,
 
     /// <summary> Pokémon captured from Special Research or Timed Research with a Premier Ball. </summary>
     /// <remarks>
@@ -70,35 +71,34 @@ public static class PogoExtensions
 
     extension(PogoType type)
     {
-        public bool IsRaid => type is PogoType.Raid
-            or PogoType.RaidMythical
-            or PogoType.RaidUltraBeast
-            or PogoType.RaidShadow
-            or PogoType.RaidShadowMythical
-            or PogoType.RaidShadowUltraBeast;
+        public bool IsRaid => type is Raid
+            or RaidMythical
+            or RaidUltraBeast
+            or RaidShadow
+            or RaidShadowMythical
+            or RaidShadowUltraBeast;
 
-        public bool IsShadow => type is PogoType.Shadow
-            or PogoType.ShadowMythical
-            or PogoType.ShadowUltraBeast
-            or PogoType.RaidShadow
-            or PogoType.RaidShadowMythical
-            or PogoType.RaidShadowUltraBeast;
+        public bool IsShadow => type is Shadow
+            or ShadowMythical
+            or ShadowUltraBeast
+            or RaidShadow
+            or RaidShadowMythical
+            or RaidShadowUltraBeast;
 
-        public bool IsMaxBattle => type is PogoType.MaxBattle
-            or PogoType.MaxBattleMythical
-            or PogoType.MaxBattleUltraBeast
-            or PogoType.MaxBattleGigantamax;
+        public bool IsMaxBattle => type is MaxBattle
+            or MaxBattleMythical
+            or MaxBattleUltraBeast;
     }
 
     extension(PogoBallRestriction ball)
     {
         public Ball GetFixedBall() => ball switch
         {
-            PogoBallRestriction.OnlyPoke => Poke,
-            PogoBallRestriction.OnlyPremier => Premier,
-            PogoBallRestriction.OnlyBeast => Beast,
-            PogoBallRestriction.OnlySafari => TransferSafariBall,
-            _ => None,
+            OnlyPoke => Poke,
+            OnlyPremier => Premier,
+            OnlyBeast => Beast,
+            OnlySafari => TransferSafariBall,
+            _ => Ball.None,
         };
 
         public bool IsValidBall(Ball current, PogoType type, PogoFlags flags)
@@ -111,30 +111,34 @@ public static class PogoExtensions
             return ball switch
             {
                 PogoBallRestriction.None => true,
-                PogoBallRestriction.StandardMaster => current is Poke or Great or Ultra,
-                PogoBallRestriction.Standard => current is Poke or Great or Ultra,
-                PogoBallRestriction.OnlyPoke => current is Poke,
-                PogoBallRestriction.OnlyPremier => current is Premier,
-                PogoBallRestriction.OnlyBeast => current is Beast,
+                StandardMaster => current is Poke or Great or Ultra,
+                StandardMasterNoSafari => current is Poke or Great or Ultra,
+                Standard => current is Poke or Great or Ultra,
+                StandardNoSafari => current is Poke or Great or Ultra,
+                OnlyPoke => current is Poke,
+                OnlyPremier => current is Premier,
+                OnlyBeast => current is Beast,
                 _ => false,
             };
         }
 
-        public bool IsMasterBallUsable(PogoType type) => ball is not (PogoBallRestriction.Standard or PogoBallRestriction.OnlyPoke or PogoBallRestriction.OnlyBeast);
+        public bool IsMasterBallUsable(PogoType type) => ball is not (Standard or StandardNoSafari or OnlyPoke or OnlyBeast);
 
         public bool IsSafariBallUsable(PogoType type, PogoFlags flags)
         {
-            if (ball is PogoBallRestriction.OnlySafari)
+            if (ball is OnlySafari)
                 return true;
+            if (ball is StandardNoSafari or StandardMasterNoSafari)
+                return false;
             if (type.IsRaid || type.IsMaxBattle)
                 return flags.HasFlag(PogoFlags.FeaturedWildArea);
 
             return type switch
             {
-                PogoType.Egg or PogoType.Egg12km => false,
-                PogoType.ResearchBreakthrough or PogoType.VivillonCollector or PogoType.ReferralBonus => false,
-                PogoType.GBL or PogoType.GBLMythical or PogoType.GBLEvent => false,
-                PogoType.Shadow or PogoType.ShadowMythical or PogoType.ShadowUltraBeast => false,
+                Egg or Egg12km => false,
+                ResearchBreakthrough or VivillonCollector or ReferralBonus => false,
+                GBL or GBLMythical or GBLEvent => false,
+                Shadow or ShadowMythical or ShadowUltraBeast => false,
                 _ => true,
             };
         }
@@ -145,9 +149,11 @@ public enum PogoBallRestriction : byte
 {
     None = 0,
     StandardMaster = 1,
-    Standard = 2,
-    OnlyPoke = 3,
-    OnlyPremier = 4,
-    OnlyBeast = 5,
-    OnlySafari = 6,
+    StandardMasterNoSafari = 2,
+    Standard = 3,
+    StandardNoSafari = 4,
+    OnlyPoke = 5,
+    OnlyPremier = 6,
+    OnlyBeast = 7,
+    OnlySafari = 8,
 }

@@ -609,7 +609,7 @@ public partial class SAV_Misc5 : Form
 
     private void B_RandForest_Click(object sender, EventArgs e)
     {
-        var source = (SAV is SAV5BW ? Encounters5BW.DreamWorld_BW : Encounters5B2W2.DreamWorld_B2W2).Concat(Encounters5DR.DreamWorld_Common).ToList();
+        var source = Encounters5Dream.GetAll(SAV is SAV5BW, false, false);
         var rnd = Util.Rand;
         Span<ushort> moves = stackalloc ushort[4];
         foreach (var s in AllSlots)
