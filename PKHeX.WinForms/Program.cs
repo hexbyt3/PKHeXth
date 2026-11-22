@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,6 +48,15 @@ internal static class Program
         Settings = PKHeXSettings.GetSettings(PathConfig);
 
         Theme.Initialize(Settings);
+        EnforceCulture();
+    }
+
+    private static void EnforceCulture()
+    {
+        // Use a Gregorian calendar regardless of user locale; save data supports dates through 2099.
+        // Avoid locale-specific calendar limitations (e.g. Um Al-Qura ending in 2077).
+        if (CultureInfo.CurrentCulture.DateTimeFormat.Calendar is not GregorianCalendar)
+            CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
     }
 
     [STAThread]
