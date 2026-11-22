@@ -54,4 +54,9 @@ public enum ProgramLanguage
     /// Traditional Chinese
     /// </summary>
     繁體中文,
+
+    /// <summary>
+    /// Dutch (program text only; game text falls back to English)
+    /// </summary>
+    Nederlands,
 }

@@ -97,7 +97,7 @@ public partial class SAV_MysteryGiftDB : Form
         L_Viewed.MouseEnter += (_, _) => hover.SetToolTip(L_Viewed, L_Viewed.Text);
 
         var settings = new TabPage { Text = "Settings" };
-        settings.Controls.Add(new PropertyGrid { Dock = DockStyle.Fill, SelectedObject = Main.Settings.EncounterDb });
+        settings.Controls.Add(new Controls.SettingsView(Main.Settings.MysteryDb)); // was EncounterDb: the window reads MysteryDb
         TC_SearchSettings.Controls.Add(settings);
 
         // Load Data

@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 using PKHeX.Core;
@@ -10,9 +11,59 @@ public partial class SAV_Trainer7 : Form
     private readonly SaveFile Origin;
     private readonly SAV7 SAV;
 
+    // Overview tab on a grid: trainer column left, region column right, the two groups below; every row 28px apart,
+    // labels right-aligned to one edge and fields of one width per column. Values are designer units.
+    private void LayoutOverview()
+    {
+        static void Label(Label l, int x, int y, int w)
+        {
+            l.AutoSize = false;
+            l.TextAlign = ContentAlignment.MiddleRight;
+            l.SetBounds(x, y, w, 23);
+        }
+        static void Field(Control c, int x, int y, int w) => c.SetBounds(x, y, w, c.Height);
+
+        // Trainer column: labels 8..98, fields 104..222
+        Label(L_TrainerName, 8, 12, 90); Field(TB_OTName, 104, 12, 118);
+        trainerID1.SetBounds(64, 40, 160, 25); // its own 40px labels end at the field edge; TID and SID on one row
+        Label(L_Money, 8, 68, 90); Field(MT_Money, 104, 68, 88); B_MaxCash.SetBounds(196, 68, 26, 23);
+        var genderGame = new Label { Name = "L_GenderGame", Text = "Gender / Game:" };
+        Tab_Overview.Controls.Add(genderGame);
+        Label(genderGame, 8, 96, 90); Field(CB_Gender, 104, 96, 44); Field(CB_Game, 152, 96, 70);
+        Label(L_Vivillon, 8, 124, 90); Field(CB_Vivillon, 104, 124, 118);
+
+        // Region column: labels 232..328, fields 334..474
+        Label(L_Country, 232, 12, 96); Field(CB_Country, 334, 12, 140);
+        Label(L_Region, 232, 40, 96); Field(CB_Region, 334, 40, 140);
+        Label(L_3DSReg, 232, 68, 96); Field(CB_3DSReg, 334, 68, 140);
+        Label(L_Language, 232, 96, 96); Field(CB_Language, 334, 96, 140);
+        Label(L_AlolaTime, 232, 124, 96); Field(CB_AlolaTime, 334, 124, 140);
+
+        // Groups
+        GB_Adventure.SetBounds(6, 162, 222, 216);
+        Label(L_Hours, 4, 24, 34); Field(MT_Hours, 40, 24, 44);
+        Label(L_Minutes, 86, 24, 36); Field(MT_Minutes, 124, 24, 30);
+        Label(L_Seconds, 156, 24, 32); Field(MT_Seconds, 190, 24, 26);
+        Label(L_Started, 4, 54, 92); Field(CAL_AdventureStartDate, 100, 54, 116); Field(CAL_AdventureStartTime, 100, 78, 116);
+        Label(L_Fame, 4, 108, 92); Field(CAL_HoFDate, 100, 108, 116); Field(CAL_HoFTime, 100, 132, 116);
+        Label(L_LastSaved, 4, 162, 92); Field(CAL_LastSavedDate, 100, 162, 116); Field(CAL_LastSavedTime, 100, 186, 116);
+
+        GB_Stats.SetBounds(234, 162, 240, 216);
+        Label(L_BP, 8, 24, 90); Field(NUD_BP, 104, 24, 100);
+        Label(L_FC, 8, 54, 90); Field(NUD_FC, 104, 54, 100);
+        TrainerStats.Location = new Point(61, 88); // its value box lines up with the fields above
+
+        // Room for the taller layout.
+        ClientSize = new Size(520, 474);
+        TC_Editor.Size = new Size(492, 414);
+        B_Save.Location = new Point(TC_Editor.Right - B_Save.Width, TC_Editor.Bottom + 8);
+        B_Cancel.Location = new Point(B_Save.Left - B_Cancel.Width - 8, B_Save.Top);
+    }
+
     public SAV_Trainer7(SAV7 sav)
     {
         InitializeComponent();
+        LayoutOverview();
         WinFormsUtil.TranslateInterface(this, Main.CurrentLanguage);
 
         BattleStyles = WinFormsTranslator.GetEnumTranslation<PlayerBattleStyle7>(Main.CurrentLanguage);

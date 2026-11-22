@@ -42,7 +42,7 @@ namespace PKHeX.WinForms.Controls
             B_BoxRight.Name = "B_BoxRight";
             B_BoxRight.Size = new System.Drawing.Size(24, 24);
             B_BoxRight.TabIndex = 2;
-            B_BoxRight.Text = ">>";
+            B_BoxRight.Text = "❯";
             B_BoxRight.UseVisualStyleBackColor = true;
             B_BoxRight.Click += ClickBoxRight;
             // 
@@ -54,7 +54,7 @@ namespace PKHeX.WinForms.Controls
             B_BoxLeft.Name = "B_BoxLeft";
             B_BoxLeft.Size = new System.Drawing.Size(24, 24);
             B_BoxLeft.TabIndex = 0;
-            B_BoxLeft.Text = "<<";
+            B_BoxLeft.Text = "❮";
             B_BoxLeft.UseVisualStyleBackColor = true;
             B_BoxLeft.Click += ClickBoxLeft;
             // 

@@ -1,0 +1,21 @@
+{
+    "FormatMove": "{0} aanval {1}: {2}",
+    "FormatRelearn": "{0} opnieuw te leren aanval {1}: {2}",
+    "SourceDefault": "Standaardaanval.",
+    "SourceDuplicate": "Dubbele aanval.",
+    "SourceEmpty": "Lege aanval.",
+    "SourceInvalid": "Ongeldige aanval.",
+    "SourceLevelUp": "Geleerd door level-up.",
+    "SourceRelearn": "Opnieuw te leren aanval.",
+    "SourceSpecial": "Speciale aanval, niet opnieuw te leren.",
+    "SourceTMHM": "Geleerd via TM/HM.",
+    "SourceTutor": "Geleerd via aanvalsleraar.",
+    "SourceShared": "Gedeelde aanval, niet opnieuw te leren.",
+    "RelearnEgg": "Basis-eiaanval.",
+    "EggInherited": "Geërfde eiaanval.",
+    "EggTMHM": "Geërfde TM/HM-aanval.",
+    "EggInheritedTutor": "Geërfde leraaraanval.",
+    "EggInvalid": "Geen verwachte eiaanval.",
+    "EggLevelUp": "Geërfde aanval, geleerd door level-up.",
+    "LevelUpSuffix": " @ lv{0}"
+}

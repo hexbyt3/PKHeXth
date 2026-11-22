@@ -16,7 +16,7 @@ public static class GameLanguage
     /// <summary>
     /// Language codes supported; mirrors <see cref="ProgramLanguage"/>.
     /// </summary>
-    private static readonly string[] LanguageCodes = ["ja", "en", "fr", "it", "de", "es", "es-419", "ko", "zh-Hans", "zh-Hant"];
+    private static readonly string[] LanguageCodes = ["ja", "en", "fr", "it", "de", "es", "es-419", "ko", "zh-Hans", "zh-Hant", "nl"];
 
     public static string LanguageCode(int localizationIndex) => (uint)localizationIndex >= LanguageCodes.Length ? DefaultLanguage : LanguageCodes[localizationIndex];
     public static int LanguageCount => LanguageCodes.Length;

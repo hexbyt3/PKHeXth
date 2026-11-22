@@ -25,8 +25,10 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
     {
         InitializeComponent();
         InitializeSidebar();
+        SpaceOutRows();
+        ApplyEditorGrid();
 
-        var font = FontUtil.GetPKXFont();
+        var font = FontUtil.GetPKXFont(11f * Theming.Theme.UiScale);
         TB_Nickname.Font = TB_OT.Font = TB_HT.Font = font;
 
         // Commonly reused Control arrays
@@ -81,14 +83,267 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
         TB_Friendship.MouseWheel += WinFormsUtil.MouseWheelIncrement1;
     }
 
+    // One spacing system for the editor tabs: a 124px label column, 160px fields (compound rows split that width),
+    // checkboxes starting at the field column, bold left-aligned section titles. Values are designer units; the
+    // form's DPI scaling is applied afterwards.
+    private const int GridLabel = 140, GridField = 180, GridGap = 4, GridIndent = 8;
+
+    private void ApplyEditorGrid()
+    {
+        Control[] labels =
+        [
+            // Main
+            Label_Species, Label_EXP, Label_Nature, L_OriginalNature, Label_HeldItem, Label_Ability, Label_Language,
+            Label_PKRS, L_NSparkle, L_ShadowID, L_HeartGauge, L_CatchRate,
+            // Met
+            Label_OriginGame, L_BattleVersion, Label_MetLocation, Label_MetDate, Label_MetLevel, L_ObedienceLevel,
+            Label_GroundTile, L_MetTimeOfDay,
+            // OT/Misc
+            Label_OT, Label_Country, Label_SubRegion, Label_3DSRegion, L_CurrentHandler, Label_PrevOT,
+            L_LanguageHT, L_ExtraBytes, L_HomeTracker, Label_EncryptionConstant, L_ArrivedDateTime,
+        ];
+        foreach (var l in labels)
+        {
+            l.AutoSize = false;
+            l.Width = GridLabel;
+            if (l is Label label)
+                label.TextAlign = ContentAlignment.MiddleLeft;
+            l.Padding = new Padding(GridIndent, 0, 0, 0); // starts where the section titles start
+        }
+
+        // Label groups (label + checkbox/icon) fill the label column, left to right from the same indent.
+        // Fixed width, automatic height: a group whose label is hidden collapses, so empty rows (e.g. Form for a
+        // species without forms) take no space.
+        foreach (var left in new[] { FLP_PIDLeft, FLP_NicknameLeft, FLP_FormLeft, FLP_FriendshipLeft, FLP_EggPKRSLeft, FLP_BallLeft })
+        {
+            left.AutoSize = true;
+            left.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            left.MinimumSize = new Size(GridLabel, 0);
+            left.MaximumSize = new Size(GridLabel, 0);
+            left.FlowDirection = FlowDirection.LeftToRight;
+            left.Padding = new Padding(GridIndent, 0, 0, 0);
+            foreach (var child in left.Controls.OfType<Label>())
+                child.TextAlign = ContentAlignment.MiddleLeft;
+        }
+        FLP_FormRight.AutoSize = true;
+        FLP_FormRight.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+
+        Control[] fields =
+        [
+            CB_Species, TB_Nickname, CB_Nature, CB_StatNature, CB_Form, CB_HeldItem, CB_Ability, DEV_Ability, CB_Language,
+            CB_GameOrigin, CB_BattleVersion, CB_MetLocation, CB_Ball, CAL_MetDate, CB_GroundTile, CB_MetTimeOfDay,
+            CB_Country, CB_SubRegion, CB_3DSReg, CB_Handler, CB_HTLanguage, TB_HomeTracker, CAL_ReceivedDateTime,
+        ];
+        foreach (var c in fields)
+        {
+            c.Width = GridField;
+            c.Margin = Padding.Empty; // some carried a few px of designer offset, pushing them out of their row
+            c.Anchor = AnchorStyles.Top | AnchorStyles.Left; // "centered" fields stayed put when they grew after layout
+        }
+
+        // Compound rows split the field width.
+        TB_PID.Width = GridField - UC_Gender.Width - BTN_RerollPID.Width;
+        TB_EXP.Width = 64;
+        Label_CurLevel.Width = GridField - TB_EXP.Width - TB_Level.Width;
+        TB_OT.Width = GridField - UC_OTGender.Width;
+        TB_HT.Width = GridField - UC_HTGender.Width;
+        TB_ExtraByte.Width = 48;
+        TB_ExtraByte.Margin = new Padding(GridGap, 0, 0, 0);
+        CB_ExtraBytes.Width = GridField - GridGap - TB_ExtraByte.Width;
+        BTN_RerollEC.Margin = Padding.Empty;
+        TB_EC.Margin = new Padding(GridGap, 2, 0, 0);
+        TB_EC.Width = GridField - GridGap - BTN_RerollEC.Width;
+        TB_MetLevel.Width = TB_ObedienceLevel.Width = 32;
+        CHK_Fateful.Margin = new Padding(8, CHK_Fateful.Margin.Top, 0, 0);
+
+        // Checkboxes on their own row sit in the label column, like the other row starts.
+        CHK_AsEgg.Margin = new Padding(GridIndent, 8, 0, 4);
+
+        // Egg met group: same columns inside the frame.
+        GB_EggConditions.Margin = new Padding(0, 4, 0, 0);
+        GB_EggConditions.Width = GridLabel + GridField + 8;
+        GB_EggConditions.Height = 82;
+        foreach (var (label, field, y) in new (Label, Control, int)[] { (Label_EggLocation, CB_EggLocation, 22), (Label_EggDate, CAL_EggDate, 50) })
+        {
+            label.AutoSize = false;
+            label.TextAlign = ContentAlignment.MiddleLeft;
+            label.SetBounds(GridIndent + 4, y, GridLabel - GridIndent - 4, 24);
+            field.SetBounds(GridLabel, y, GridField, field.Height);
+        }
+
+        // The trainer ID control has its own labels: its first one spans the label column so the first ID box starts
+        // at the field column.
+        TID_Trainer.Margin = new Padding(GridIndent, 0, 0, 0);
+        TID_Trainer.AlignToGrid(GridLabel - GridIndent);
+
+        // Section titles.
+        foreach (var title in new[] { GB_OT, GB_nOT, GB_CurrentMoves, GB_RelearnMoves })
+        {
+            title.Font = new Font(title.Font, FontStyle.Bold);
+            title.Margin = new Padding(GridIndent, 14, 0, 4);
+        }
+        GB_CurrentMoves.AutoSize = false; // sized in StretchMoves so the PP / Ups header that follows sits above its columns
+        FLP_PP.Margin = GB_CurrentMoves.Margin with { Left = 0 };
+        FLP_Moves.Dock = DockStyle.Fill;
+        FLP_Moves.Padding = FLP_Main.Padding;
+        L_AlphaMastered.TextAlign = ContentAlignment.MiddleLeft;
+        L_AlphaMastered.Padding = new Padding(GridIndent, 0, 0, 0);
+        FLP_AlphaMove.Margin = FLP_AlphaMove.Margin with { Left = 0 };
+        foreach (var mc in new[] { MC_Move1, MC_Move2, MC_Move3, MC_Move4 })
+            mc.Margin = new Padding(GridIndent, 0, 0, 0);
+
+        FLP_Main.SizeChanged += (_, _) => StretchFields();
+        FLP_Moves.SizeChanged += (_, _) => StretchMoves();
+        foreach (var flp in new[] { FLP_Main, FLP_Met, FLP_OTMisc, FLP_Moves, Stats.Rows })
+        {
+            var page = flp;
+            page.Layout += (_, _) => JustifyRows(page);
+        }
+        FLP_CosmeticTop.Layout += (_, _) => JustifyRows(FLP_CosmeticTop, center: true); // a gallery, not a form: centered
+    }
+
+
+    // Fields run from the field column to the page's right edge (leaving room for the small boxes/icons that follow
+    // some fields), recomputed whenever the page size changes. Works in device pixels, after DPI/UI scaling.
+    private void StretchFields()
+    {
+        int label = Label_Species.Width;
+        int field = FLP_Main.ClientSize.Width - label - FieldReserve;
+        if (field < CB_Species.MinimumSize.Width || field < 100)
+            return;
+
+        Control[] fields =
+        [
+            CB_Species, TB_Nickname, CB_Nature, CB_StatNature, CB_Form, CB_HeldItem, CB_Ability, DEV_Ability, CB_Language,
+            CB_GameOrigin, CB_BattleVersion, CB_MetLocation, CB_Ball, CAL_MetDate, CB_GroundTile, CB_MetTimeOfDay,
+            CB_Country, CB_SubRegion, CB_3DSReg, CB_Handler, CB_HTLanguage, TB_HomeTracker, CAL_ReceivedDateTime,
+            CB_EggLocation, CAL_EggDate,
+        ];
+        foreach (var c in fields)
+            c.Width = field;
+
+        int gap = TB_ExtraByte.Margin.Left;
+        TB_PID.Width = field - UC_Gender.Width - BTN_RerollPID.Width;
+        Label_CurLevel.Width = field - TB_EXP.Width - TB_Level.Width;
+        TB_OT.Width = field - UC_OTGender.Width;
+        TB_HT.Width = field - UC_HTGender.Width;
+        CB_ExtraBytes.Width = field - gap - TB_ExtraByte.Width;
+        TB_EC.Width = field - gap - BTN_RerollEC.Width;
+        GB_EggConditions.Width = CB_EggLocation.Left + field + gap;
+    }
+
+    /// <summary> Space kept right of the fields, for the small boxes/icons that follow some of them. </summary>
+    private int FieldReserve => Math.Max(TB_AbilityNumber.Width, BTN_NicknameWarn.Width) + (2 * TB_ExtraByte.Margin.Left);
+
+    // Move rows end where the other tabs' fields end; relearn / alpha boxes line up under the move boxes, and the
+    // PP / Ups header sits above its columns.
+    private void StretchMoves()
+    {
+        int right = FLP_Moves.ClientSize.Width - FieldReserve;
+        if (right < 200)
+            return;
+        foreach (var mc in new[] { MC_Move1, MC_Move2, MC_Move3, MC_Move4 })
+            mc.FitWidth(right - mc.Margin.Left);
+
+        var first = MC_Move1;
+        int moveLeft = first.Margin.Left + first.MoveLeft;
+        foreach (var cb in new[] { CB_RelearnMove1, CB_RelearnMove2, CB_RelearnMove3, CB_RelearnMove4 })
+        {
+            cb.Width = first.MoveWidth;
+            cb.Parent!.Margin = cb.Parent.Margin with { Left = moveLeft - cb.Left };
+        }
+        L_AlphaMastered.Width = moveLeft;
+        CB_AlphaMastered.Width = first.MoveWidth;
+
+        var (pp, ups) = first.ColumnWidths;
+        Label_CurPP.Width = pp;
+        Label_PPups.Width = ups;
+        GB_CurrentMoves.Width = first.Margin.Left + first.PPLeft - GB_CurrentMoves.Margin.Left;
+    }
+
+    // Short tabs spread their rows over the page height (up to ~20px between rows), so they don't leave the bottom of
+    // the card empty. Recomputed on every layout pass; base margins are remembered per row.
+    private readonly Dictionary<Control, Padding> BaseMargins = [];
+
+    // The window zoom scales every control; the cached row margins have to follow, or rows keep their old spacing
+    // (zoomed out, the last rows fall off the bottom of the card).
+    protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
+    {
+        base.ScaleControl(factor, specified);
+        foreach (var (c, m) in BaseMargins.ToArray())
+        {
+            BaseMargins[c] = new Padding((int)Math.Round(m.Left * factor.Width), (int)Math.Round(m.Top * factor.Height),
+                (int)Math.Round(m.Right * factor.Width), (int)Math.Round(m.Bottom * factor.Height));
+        }
+    }
+    private bool Justifying;
+
+    private void JustifyRows(FlowLayoutPanel flp, bool center = false)
+    {
+        if (Justifying || !flp.Visible)
+            return;
+        Justifying = true;
+        try
+        {
+            var visible = flp.Controls.Cast<Control>().Where(c => c.Visible).ToList();
+            foreach (var r in visible)
+                BaseMargins.TryAdd(r, r.Margin);
+            // Collapsed rows (e.g. an empty form-argument row) take no space at all.
+            foreach (var r in visible.Where(c => c.Height <= 1))
+                r.Margin = BaseMargins[r] with { Top = 0, Bottom = 0 };
+            var rows = visible.Where(c => c.Height > 1).ToList();
+            if (rows.Count == 0)
+                return;
+
+            // Controls sharing a flow line (e.g. a title and its column header) count as one row.
+            var lines = rows.GroupBy(r => r.Top - r.Margin.Top).ToList();
+            int natural = flp.Padding.Vertical + lines.Sum(l => l.Max(r => r.Height + BaseMargins[r].Vertical));
+            int slack = flp.ClientSize.Height - natural - (int)(12 * Theming.Theme.UiScale);
+            // Spare height spreads the rows out; too little height (a zoomed-out window) tightens them, down to no
+            // margin at all, so the last rows stay on the card.
+            int extra = Math.Min(slack / (lines.Count * 2), (int)(10 * Theming.Theme.UiScale));
+            foreach (var line in lines)
+            {
+                var items = line.OrderBy(r => r.Left).ToList();
+                // Centered pages: the first control's left margin centers the whole line.
+                int span = items[^1].Right + items[^1].Margin.Right - items[0].Left;
+                int left = center ? Math.Max(0, (flp.ClientSize.Width - span) / 2) : -1;
+                foreach (var r in items)
+                {
+                    var b = BaseMargins[r];
+                    var m = new Padding(left >= 0 && r == items[0] ? left : b.Left, Math.Max(0, b.Top + extra), b.Right, Math.Max(0, b.Bottom + extra));
+                    if (r.Margin != m)
+                        r.Margin = m;
+                }
+            }
+        }
+        finally
+        {
+            Justifying = false;
+        }
+    }
+
+    // Rows get a little breathing room.
+    private void SpaceOutRows()
+    {
+        foreach (var flp in new[] { FLP_Main, FLP_Met, FLP_OTMisc })
+        {
+            foreach (Control row in flp.Controls)
+            {
+                if (row is FlowLayoutPanel)
+                    row.Margin = new Padding(0, 3, 0, 3);
+            }
+        }
+    }
+
     private void InitializeSidebar()
     {
-        TC_Editor.AddItem("Main",     "Main",     ContestColor.Cool);
-        TC_Editor.AddItem("Met",      "Met",      ContestColor.Beauty);
-        TC_Editor.AddItem("Stats",    "Stats",    ContestColor.Cute);
-        TC_Editor.AddItem("Moves",    "Moves",    ContestColor.Clever);
-        TC_Editor.AddItem("Cosmetic", "Cosmetic", ContestColor.Tough);
-        TC_Editor.AddItem("OTMisc",   "OT/Misc",  Color.RosyBrown);
+        TC_Editor.AddItem("Main",     "Main",     ContestColor.Cool,   "\uE946");
+        TC_Editor.AddItem("Met",      "Met",      ContestColor.Beauty, "\uE81D");
+        TC_Editor.AddItem("Stats",    "Stats",    ContestColor.Cute,   "\uE9D2");
+        TC_Editor.AddItem("Moves",    "Moves",    ContestColor.Clever, "\uE945");
+        TC_Editor.AddItem("Cosmetic", "Cosmetic", ContestColor.Tough,  "\uE790");
+        TC_Editor.AddItem("OTMisc",   "OT/Misc",  Color.RosyBrown,     "\uE77B");
     }
 
     private void ClickManualAbility(object sender, EventArgs e)
@@ -456,12 +711,12 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
         if (!Unicode)
         {
             BTN_Shinytize.Text = Draw.ShinyDefault;
-            TB_Nickname.Font = TB_OT.Font = TB_HT.Font = GB_OT.Font;
+            TB_Nickname.Font = TB_OT.Font = TB_HT.Font = Font; // the editor font (GB_OT is now a bold section title)
         }
         else
         {
             BTN_Shinytize.Text = Draw.ShinyUnicode;
-            TB_Nickname.Font = TB_OT.Font = TB_HT.Font = FontUtil.GetPKXFont();
+            TB_Nickname.Font = TB_OT.Font = TB_HT.Font = FontUtil.GetPKXFont(11f * Theming.Theme.UiScale);
         }
     }
 
@@ -2058,6 +2313,7 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
         B_RelearnFlags.Visible = t is ITechRecord;
         B_MoveShop.Visible = t is IMoveShop8Mastery;
         B_PlusRecord.Visible = t is IPlusRecord;
+        panel1.Visible = t is ITechRecord or IMoveShop8Mastery or IPlusRecord; // no empty button row
         FLP_HTLanguage.Visible = format >= 8;
         L_AlphaMastered.Visible = CB_AlphaMastered.Visible = t is PA8;
         FLP_ObedienceLevel.Visible = t is IObedienceLevel;
@@ -2147,7 +2403,7 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
         else if (Entity.Format != 1 && !Hidden_TC.TabPages.Contains(Hidden_Met))
         {
             Hidden_TC.TabPages.Insert(1, Hidden_Met);
-            TC_Editor.InsertItem(1, "Met", "Met", ContestColor.Beauty);
+            TC_Editor.InsertItem(1, "Met", "Met", ContestColor.Beauty, "\uE81D");
             isTranslationRequired = true;
         }
 
@@ -2159,7 +2415,7 @@ public sealed partial class PKMEditor : UserControl, IMainEditor
         else if (Entity.Format > 2 && !Hidden_TC.TabPages.Contains(Hidden_Cosmetic))
         {
             Hidden_TC.TabPages.Insert(4, Hidden_Cosmetic);
-            TC_Editor.InsertItem(4, "Cosmetic", "Cosmetic", ContestColor.Tough);
+            TC_Editor.InsertItem(4, "Cosmetic", "Cosmetic", ContestColor.Tough, "\uE790");
             isTranslationRequired = true;
         }
 

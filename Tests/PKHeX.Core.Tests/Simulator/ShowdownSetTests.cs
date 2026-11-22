@@ -205,6 +205,8 @@ public class ShowdownSetTests
             var languageTarget = l.Key;
             if (languageTarget == languageOriginal)
                 continue;
+            if (languageTarget == "nl")
+                continue; // Dutch exports the English Showdown format (no Dutch game text), so there is nothing to translate
 
             var exportSettings = new BattleTemplateExportSettings(languageTarget);
             var translated = set.GetText(exportSettings);

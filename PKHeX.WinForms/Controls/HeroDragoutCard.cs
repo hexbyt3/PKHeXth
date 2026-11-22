@@ -50,7 +50,7 @@ public sealed class HeroDragoutCard : Panel, IThemedControl
         g.SmoothingMode = SmoothingMode.AntiAlias;
         var palette = Theme.Current;
 
-        using var path = CreateRounded(r, LogicalToDeviceUnits(CornerRadius));
+        using var path = Shapes.RoundRect(r, LogicalToDeviceUnits(CornerRadius));
 
         using (var surface = new SolidBrush(palette.Surface1))
             g.FillPath(surface, path);
@@ -64,9 +64,6 @@ public sealed class HeroDragoutCard : Panel, IThemedControl
             g.SetClip(path);
             g.FillRectangle(tint, r);
             g.Clip = clip;
-
-            if (!_isEgg)
-                DrawTypeCorner(g, r, palette);
         }
 
         using var pen = new Pen(palette.Border, 1f);
@@ -91,39 +88,5 @@ public sealed class HeroDragoutCard : Panel, IThemedControl
         if (_secondary.IsEmpty)
             return Color.FromArgb(0, _primary);
         return Color.FromArgb(alpha, _secondary);
-    }
-
-    private void DrawTypeCorner(Graphics g, Rectangle r, ThemePalette palette)
-    {
-        int chip = LogicalToDeviceUnits(10);
-        int margin = LogicalToDeviceUnits(4);
-        var corner = new Rectangle(r.Right - chip - margin, r.Top + margin, chip, chip);
-        using (var brush = new SolidBrush(_primary))
-            g.FillEllipse(brush, corner);
-        if (!_secondary.IsEmpty)
-        {
-            var second = new Rectangle(corner.X - chip + (chip / 3), corner.Y + (chip / 3), chip, chip);
-            using var brush = new SolidBrush(_secondary);
-            g.FillEllipse(brush, second);
-        }
-        using var ring = new Pen(palette.Border, 1f);
-        g.DrawEllipse(ring, corner);
-    }
-
-    private static GraphicsPath CreateRounded(Rectangle r, int radius)
-    {
-        var path = new GraphicsPath();
-        if (radius <= 0 || r.Width <= 0 || r.Height <= 0)
-        {
-            path.AddRectangle(r);
-            return path;
-        }
-        int d = Math.Min(radius * 2, Math.Min(r.Width, r.Height));
-        path.AddArc(r.X, r.Y, d, d, 180, 90);
-        path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-        path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
-        path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
-        path.CloseFigure();
-        return path;
     }
 }

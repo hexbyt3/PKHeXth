@@ -5,6 +5,7 @@ namespace PKHeX.WinForms.Theming;
 public sealed record ThemePalette
 {
     public required bool IsDark { get; init; }
+    public required Color Canvas { get; init; }
     public required Color Surface0 { get; init; }
     public required Color Surface1 { get; init; }
     public required Color Surface2 { get; init; }
@@ -25,35 +26,38 @@ public sealed record ThemePalette
     public Color FocusRing => Accent;
     public Color AccentMuted => Mix(Accent, Surface0, 0.70f);
 
+    // Canvas = window backdrop, Surface0 = cards, Surface1 = fields, Surface2 = raised/hover.
     public static ThemePalette CreateLight(Color accent) => new()
     {
         IsDark = false,
-        Surface0 = Color.FromArgb(0xF5, 0xF6, 0xF8),
+        Canvas = Color.FromArgb(0xE6, 0xE9, 0xEF),
+        Surface0 = Color.FromArgb(0xFA, 0xFB, 0xFC),
         Surface1 = Color.FromArgb(0xFF, 0xFF, 0xFF),
-        Surface2 = Color.FromArgb(0xEE, 0xF0, 0xF4),
-        Border = Color.FromArgb(0xD8, 0xDB, 0xE3),
-        TextPrimary = Color.FromArgb(0x1A, 0x1D, 0x23),
-        TextMuted = Color.FromArgb(0x5A, 0x61, 0x70),
-        TextDisabled = Color.FromArgb(0xA0, 0xA6, 0xB0),
+        Surface2 = Color.FromArgb(0xEC, 0xEF, 0xF3),
+        Border = Color.FromArgb(0xC3, 0xC9, 0xD3),
+        TextPrimary = Color.FromArgb(0x16, 0x1A, 0x22),
+        TextMuted = Color.FromArgb(0x48, 0x50, 0x5F),
+        TextDisabled = Color.FromArgb(0x8E, 0x95, 0xA2),
         Accent = accent,
         AccentHover = Lighten(accent, 0.08f),
         AccentText = Color.White,
-        Legal = Color.FromArgb(0x22, 0xC5, 0x5E),
-        Warning = Color.FromArgb(0xF5, 0x9E, 0x0B),
-        Invalid = Color.FromArgb(0xEF, 0x44, 0x44),
-        Info = Color.FromArgb(0x3B, 0x82, 0xF6),
+        Legal = Color.FromArgb(0x16, 0xA3, 0x4A),
+        Warning = Color.FromArgb(0xE0, 0x8A, 0x00),
+        Invalid = Color.FromArgb(0xDC, 0x3B, 0x3B),
+        Info = Color.FromArgb(0x25, 0x6E, 0xE8),
     };
 
     public static ThemePalette CreateDark(Color accent) => new()
     {
         IsDark = true,
-        Surface0 = Color.FromArgb(0x14, 0x16, 0x1B),
-        Surface1 = Color.FromArgb(0x1C, 0x1F, 0x26),
-        Surface2 = Color.FromArgb(0x26, 0x2A, 0x34),
-        Border = Color.FromArgb(0x2A, 0x2E, 0x38),
-        TextPrimary = Color.FromArgb(0xE8, 0xEA, 0xF0),
-        TextMuted = Color.FromArgb(0x8A, 0x92, 0xA6),
-        TextDisabled = Color.FromArgb(0x5A, 0x61, 0x70),
+        Canvas = Color.FromArgb(0x0D, 0x0F, 0x14),
+        Surface0 = Color.FromArgb(0x16, 0x19, 0x20),
+        Surface1 = Color.FromArgb(0x21, 0x26, 0x30),
+        Surface2 = Color.FromArgb(0x2B, 0x31, 0x3D),
+        Border = Color.FromArgb(0x3A, 0x41, 0x4F),
+        TextPrimary = Color.FromArgb(0xF1, 0xF3, 0xF7),
+        TextMuted = Color.FromArgb(0xAF, 0xB6, 0xC6),
+        TextDisabled = Color.FromArgb(0x70, 0x77, 0x87),
         Accent = accent,
         AccentHover = Lighten(accent, 0.10f),
         AccentText = Color.White,

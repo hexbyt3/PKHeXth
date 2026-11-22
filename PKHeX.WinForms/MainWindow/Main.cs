@@ -20,13 +20,37 @@ using static PKHeX.Core.MessageStrings;
 
 namespace PKHeX.WinForms;
 
-public partial class Main : Form
+public partial class Main : Form, Theming.IThemedControl
 {
+    private readonly EntityHeader entityHeader = new();
+
     public Main()
     {
         InitializeComponent();
+        foreach (var pane in new[] { splitContainer1.Panel1, splitContainer1.Panel2 })
+        {
+            pane.Paint += PaintCard;
+            pane.Resize += (s, _) => ((Control)s!).Invalidate();
+        }
+        // Summary band above the editor hosts the sprite card and the legality chip.
+        splitContainer1.Panel1.Controls.Add(entityHeader);
+        entityHeader.SendToBack(); // dock before the fill-docked editor
+        entityHeader.Controls.Add(PN_HeroCard);
+        entityHeader.Controls.Add(PB_Legal);
+        PB_Legal.Anchor = AnchorStyles.None;
+
+        topHeader.OpenSave.Click += (s, e) => MainMenuOpen(s!, e);
+        topHeader.ExportSave.Click += (s, e) => ClickExportSAV(s!, e);
+
+        // Host the drag-out sprite inside the hero card so its transparent background shows the card, not the pane.
+        PN_HeroCard.Controls.Add(dragout);
+        dragout.ZoomSprite = true; // the sprite fills the card
+        // Docked, not sized by hand: a window zoom scaled a hand-sized sprite a second time, past the card's edges.
+        PN_HeroCard.Padding = new Padding(4);
+        dragout.Dock = DockStyle.Fill;
         if (Settings.Display.DisableScalingDpi)
             AutoScaleMode = AutoScaleMode.Font;
+        ScaleUp(Theming.Theme.UiScale);
         C_SAV.SetEditEnvironment(new SaveDataEditor<PictureBox>(FakeSaveFile.Default, PKME_Tabs));
         FormLoadAddEvents();
         Application.Idle += RefreshModifiedIndicator;
@@ -38,6 +62,186 @@ public partial class Main : Form
         }
 #endif
         FormInitializeSecond();
+    }
+
+    // Larger, roomier main window: lays everything out like a display-scaling change, then scales the fonts
+    // (which Control.Scale leaves alone). Controls that inherit their font follow their parent.
+    private void ScaleUp(float factor)
+    {
+        Scale(new SizeF(factor, factor));
+        ScaleFonts(this, factor);
+    }
+
+    // Resizing the window zooms the whole UI to fit, the same way the startup scale-up does.
+    // Each zoom rescales the current layout, so many zoom steps can drift a pixel or two.
+    // TODO: rebuild from the base layout if that drift ever shows.
+    private Size ZoomBase; // client size at the default scale
+    private float SplitRatio; // editor pane share of the width, kept through zooms
+
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        ZoomBase = ClientSize; // after DPI auto-scaling
+        SplitRatio = (float)splitContainer1.SplitterDistance / splitContainer1.Width;
+        splitContainer1.SplitterMoved += (_, _) =>
+        {
+            if (MouseButtons == MouseButtons.Left) // the user dragged the divider (not a resize clamping it)
+                SplitRatio = (float)splitContainer1.SplitterDistance / splitContainer1.Width;
+        };
+        MinimumSize = new Size((int)(Width * 0.7f), (int)(Height * 0.7f)); // below ~70% of the default zoom fields wrap and text gets unreadable
+    }
+
+    private FormWindowState LastWindowState;
+
+    // While dragging the window edge the docked panes re-lay out on every mouse move; compose the whole window
+    // off-screen during the drag so that does not flicker. Only for the drag: composited painting slows hover effects.
+    protected override void OnResizeBegin(EventArgs e)
+    {
+        base.OnResizeBegin(e);
+        SetComposited(true);
+    }
+
+    protected override void OnResizeEnd(EventArgs e)
+    {
+        base.OnResizeEnd(e);
+        ZoomToFit();
+        SetComposited(false);
+    }
+
+    private void SetComposited(bool on)
+    {
+        const int GWL_EXSTYLE = -20, WS_EX_COMPOSITED = 0x02000000;
+        var style = GetWindowLong(Handle, GWL_EXSTYLE);
+        SetWindowLong(Handle, GWL_EXSTYLE, on ? style | WS_EX_COMPOSITED : style & ~WS_EX_COMPOSITED);
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr hWnd, int index);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern int SetWindowLong(IntPtr hWnd, int index, int value);
+
+    protected override void OnSizeChanged(EventArgs e)
+    {
+        base.OnSizeChanged(e);
+        if (WindowState == LastWindowState)
+            return; // dragging: wait for ResizeEnd
+        LastWindowState = WindowState;
+        ZoomToFit(); // maximize / restore
+    }
+
+    private void ZoomToFit()
+    {
+        if (ZoomBase.IsEmpty || WindowState == FormWindowState.Minimized)
+            return;
+        var target = Theming.Theme.DefaultUiScale * Math.Min((float)ClientSize.Width / ZoomBase.Width, (float)ClientSize.Height / ZoomBase.Height);
+        var factor = target / Theming.Theme.UiScale;
+        if (Math.Abs(factor - 1) < 0.02f)
+            return;
+
+        Theming.Theme.UiScale = target;
+        SendMessage(Handle, WM_SETREDRAW, 0, 0); // no half-scaled frames: repaint once when everything is done
+        try
+        {
+            var split = splitContainer1;
+            SuspendLayout();
+            SuspendAutoComplete(this); // resizing rebuilds them too
+            foreach (Control c in Controls)
+                c.Scale(new SizeF(factor, factor)); // children only: the form keeps the size the user picked
+            ScaleFonts(this, factor);
+            PKME_Tabs.UpdateUnicode(GenderSymbols); // the in-game font is re-created at the new size
+            ResumeLayout(true);
+
+            // The editor pane's minimum width is in pixels: zoom it too, then keep the editor/box split ratio.
+            split.Panel1MinSize = (int)(split.Panel1MinSize * factor);
+            split.SplitterDistance = Math.Max(split.Panel1MinSize, (int)(SplitRatio * split.Width));
+            C_SAV.FitBox(); // the box grid fit itself mid-zoom, before its tiles were rescaled
+        }
+        finally
+        {
+            SendMessage(Handle, WM_SETREDRAW, 1, 0);
+            RedrawWindow(Handle, IntPtr.Zero, IntPtr.Zero, RDW_INVALIDATE | RDW_ERASE | RDW_FRAME | RDW_ALLCHILDREN | RDW_UPDATENOW);
+        }
+    }
+
+    private const int WM_SETREDRAW = 0x000B;
+    private const uint RDW_INVALIDATE = 0x1, RDW_ERASE = 0x4, RDW_ALLCHILDREN = 0x80, RDW_UPDATENOW = 0x100, RDW_FRAME = 0x400;
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern IntPtr SendMessage(IntPtr hWnd, int msg, int w, int l);
+    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool RedrawWindow(IntPtr hWnd, IntPtr rect, IntPtr rgn, uint flags);
+
+    private static readonly HashSet<string> InstalledFonts = [.. FontFamily.Families.Select(f => f.Name)];
+
+    private static void ScaleFonts(Control root, float factor)
+    {
+        SuspendAutoComplete(root);
+        ScaleFontsTree(root, factor);
+    }
+
+    private static void ScaleFontsTree(Control c, float factor)
+    {
+        // Fonts outside the system collection (PKHeX's private in-game font) cannot be re-created at another size for
+        // native text boxes, so those keep their original setting.
+        bool own = c.Parent?.Font is not { } inherited || !c.Font.Equals(inherited);
+        if (own && InstalledFonts.Contains(c.Font.FontFamily.Name))
+            c.Font = new Font(c.Font.FontFamily, c.Font.Size * factor, c.Font.Style);
+        foreach (Control child in c.Controls)
+            ScaleFontsTree(child, factor);
+    }
+
+    // A font change rebuilds every combo box with autocomplete (20-60 ms each, over a second for the whole editor).
+    // Switch autocomplete off for the zoom and back on one combo at a time in the background; it is only used once
+    // the user types into a combo.
+    private static readonly Dictionary<ComboBox, AutoCompleteMode> PendingAutoComplete = [];
+    private static readonly System.Windows.Forms.Timer AutoCompleteTimer = new() { Interval = 15 };
+
+    private static void SuspendAutoComplete(Control c)
+    {
+        if (c is ComboBox { IsHandleCreated: true, AutoCompleteMode: not AutoCompleteMode.None } cb)
+        {
+            PendingAutoComplete[cb] = cb.AutoCompleteMode;
+            cb.AutoCompleteMode = AutoCompleteMode.None;
+        }
+        foreach (Control child in c.Controls)
+            SuspendAutoComplete(child);
+        if (PendingAutoComplete.Count != 0 && !AutoCompleteTimer.Enabled)
+        {
+            AutoCompleteTimer.Tick -= RestoreAutoComplete;
+            AutoCompleteTimer.Tick += RestoreAutoComplete;
+            AutoCompleteTimer.Start();
+        }
+    }
+
+    private static void RestoreAutoComplete(object? sender, EventArgs e)
+    {
+        foreach (var (cb, mode) in PendingAutoComplete)
+        {
+            if (cb.Focused || cb.DroppedDown)
+                continue; // turning it back on rebuilds the combo: not while the user is in it
+            PendingAutoComplete.Remove(cb);
+            if (!cb.IsDisposed)
+                cb.AutoCompleteMode = mode;
+            return; // one per tick, so the window stays responsive
+        }
+        if (PendingAutoComplete.Count == 0)
+            AutoCompleteTimer.Stop();
+    }
+
+    public void ApplyTheme(Theming.ThemePalette palette)
+    {
+        BackColor = palette.Canvas;
+        ForeColor = palette.TextPrimary;
+        Draw.LoadBrushes(); // move list colors follow the palette
+        splitContainer1.Panel1.Invalidate();
+        splitContainer1.Panel2.Invalidate();
+    }
+
+    // Each split pane is drawn as a rounded card; the pane Padding holds the gutter plus the card inset.
+    private static void PaintCard(object? sender, PaintEventArgs e)
+    {
+        if (sender is not Control pane)
+            return;
+        var p = Theming.Theme.Current;
+        var pad = pane.Padding;
+        int inset = pane.LogicalToDeviceUnits(6);
+        var r = Rectangle.FromLTRB(pad.Left - inset, pad.Top - inset, pane.Width - pad.Right + inset - 1, pane.Height - pad.Bottom + inset - 1);
+        Theming.Shapes.Fill(e.Graphics, r, pane.LogicalToDeviceUnits(10), p.Surface0, p.Border);
     }
 
     #region Important Variables
@@ -354,6 +558,7 @@ public partial class Main : Form
         Text = GetProgramTitle(C_SAV.SAV);
         // Update final settings
         ReloadProgramSettings(Settings);
+        Theming.Theme.Refresh();
 
         if (form.BlankChanged) // changed by user
         {
@@ -744,10 +949,10 @@ public partial class Main : Form
             return true;
 
         Theming.Theme.OnSaveFileLoaded(sav);
-        trainerPlate.SetSave(sav);
-        SL_SavePath.Text = string.IsNullOrWhiteSpace(path) ? "In-memory save" : path;
+        topHeader.SetSave(sav, !string.IsNullOrWhiteSpace(path));
+        LoadedPath = path;
         SL_Version.Text = sav.Version.ToString();
-        SL_Language.Text = ((LanguageID)sav.Language).ToString();
+        UpdateStatusText();
 
         if (C_SAV.SAV.State.Edited && Settings.SlotWrite.ModifyUnset)
         {
@@ -763,7 +968,6 @@ public partial class Main : Form
         ParseSettings.InitFromSaveFileData(sav); // physical GB, no longer used in logic
         RecentTrainerCache.SetRecentTrainer(sav);
         SpriteUtil.Initialize(sav); // refresh sprite generator
-        dragout.Size = new Size(SpriteUtil.Spriter.Width, SpriteUtil.Spriter.Height);
 
         // clean fields
         Menu_ExportSAV.Enabled = sav.State.Exportable;
@@ -784,7 +988,7 @@ public partial class Main : Form
         Menu_ShowdownExportCurrentBox.Visible = sav.HasBox;
 
         Settings.Startup.LoadSaveFile(path);
-        if (Settings.Sounds.PlaySoundSAVLoad)
+        if (Settings.Sounds.PlaySoundSAVLoad && Visible) // no chime for the save loaded at startup
             SystemSounds.Asterisk.Play();
         return true;
     }
@@ -972,6 +1176,16 @@ public partial class Main : Form
     }
 
     // Language Translation
+    private string? LoadedPath;
+
+    // Status bar texts that follow the program language (the save path itself is shown as-is).
+    private void UpdateStatusText()
+    {
+        SL_SavePath.Text = string.IsNullOrWhiteSpace(LoadedPath) ? WinFormsTranslator.Tr("Main.SL_InMemory", "In-memory save") : LoadedPath;
+        var language = (LanguageID)C_SAV.SAV.Language;
+        SL_Language.Text = WinFormsTranslator.Tr($"LanguageID.{language}", language.ToString());
+    }
+
     private void ChangeMainLanguage(object sender, EventArgs e)
     {
         var index = CB_MainLanguage.SelectedIndex;
@@ -991,6 +1205,7 @@ public partial class Main : Form
 
         SizeCP.ResetSizeLocalizations(lang);
         PKME_Tabs.SizeCP.TryResetStats();
+        UpdateStatusText();
 
         if (sav is not FakeSaveFile)
         {
@@ -1142,11 +1357,13 @@ public partial class Main : Form
         if (menu is not null)
             menu.Enabled = pk.Species != 0 || HaX; // Species
 
+        SlotUtil.SetSubject(pb, pk);
         pb.Image = pk.Sprite(C_SAV.SAV);
         if (pb.BackColor == SlotUtil.BadDataColor)
             pb.BackColor = SlotUtil.GoodDataColor;
 
         UpdateHeroCardTypes(pk);
+        entityHeader.SetEntity(pk);
     }
 
     private void RefreshModifiedIndicator(object? sender, EventArgs e)
@@ -1197,6 +1414,7 @@ public partial class Main : Form
         PB_Legal.Visible = true;
         bool isValid = (sender as bool?) != false;
         PB_Legal.SetFromLegality(isValid);
+        entityHeader.SetEntity(PKME_Tabs.Data);
         toolTip.SetToolTip(PB_Legal, isValid ? MsgLegalityHoverValid : MsgLegalityHoverInvalid);
     }
 

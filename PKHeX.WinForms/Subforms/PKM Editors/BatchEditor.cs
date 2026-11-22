@@ -22,6 +22,7 @@ public partial class BatchEditor : Form
     public BatchEditor(PKM pk, SaveFile sav)
     {
         InitializeComponent();
+        RTB_Instructions.Font = FontUtil.GetMonospace(RTB_Instructions.Font.Size + 0.75f); // scripts read better in a code font
         WinFormsUtil.TranslateInterface(this, Main.CurrentLanguage);
         var above = FLP_RB.Location;
         UC_Builder = new EntityInstructionBuilder(() => pk)

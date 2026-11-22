@@ -14,7 +14,7 @@ public static class GeoLocation
     /// <summary>
     /// Returns the index of which the <see cref="language"/> is in the country/region list.
     /// </summary>
-    public static int GetLanguageIndex(string language) => lang_geo.IndexOf(language == "es-419" ? "es" : language);
+    public static int GetLanguageIndex(string language) => lang_geo.IndexOf(language switch { "es-419" => "es", "nl" => "en", _ => language }); // no Dutch game text: English names
     private static int GetLanguageIndex(LanguageID language) => GetLanguageIndex(language.GetLanguageCode());
 
     private const string INVALID = nameof(INVALID);

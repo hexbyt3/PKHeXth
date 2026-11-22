@@ -1,0 +1,15 @@
+{
+    "Format": "{0}: {1}",
+    "FormatLevelRange": "{0}: {1}-{2}",
+    "EncounterType": "Ontmoetingstype",
+    "Version": "Versie",
+    "Level": "Level",
+    "LevelRange": "Levelbereik",
+    "Location": "Locatie",
+    "OriginSeed": "Oorspronkelijke seed",
+    "PIDType": "PID-type",
+    "Time": "Tijd",
+    "FrameNewGame": "Nieuw spel: 0x{0}, frame: {1}",
+    "FrameInitial": "Begin: 0x{0}, frame: {1}",
+    "SuffixDays": " (dagen: {0})"
+}

@@ -11,9 +11,40 @@ public partial class FormArgument : UserControl
     private byte CurrentForm;
     private EntityContext CurrentContext;
     private bool FieldsLoaded;
-    public bool IsControlVisible { get; private set; }
+    /// <summary> True when the species has a form argument to edit. With nothing to show the (auto-sized) control
+    /// drops its minimum size and shrinks away, so the editor row it sits in takes no space. </summary>
+    public bool IsControlVisible
+    {
+        get;
+        private set
+        {
+            field = value;
+            base.MinimumSize = value ? _minimum : System.Drawing.Size.Empty;
+        }
+    }
 
-    public FormArgument() => InitializeComponent();
+    // The designer's minimum size only applies while an argument is shown.
+    private System.Drawing.Size _minimum;
+
+    public override System.Drawing.Size MinimumSize
+    {
+        get => base.MinimumSize;
+        set
+        {
+            if (value != System.Drawing.Size.Empty)
+                _minimum = value;
+            base.MinimumSize = IsControlVisible ? value : System.Drawing.Size.Empty;
+        }
+    }
+
+    protected override void ScaleControl(System.Drawing.SizeF factor, BoundsSpecified specified)
+    {
+        base.ScaleControl(factor, specified);
+        if (!IsControlVisible) // base only scaled the (empty) active minimum; keep the stored one in step with DPI
+            _minimum = new System.Drawing.Size((int)Math.Round(_minimum.Width * factor.Width), (int)Math.Round(_minimum.Height * factor.Height));
+    }
+
+    public FormArgument() => InitializeComponent(); // starts collapsed: IsControlVisible is false until an argument loads
 
     public bool LoadArgument(IFormArgument f, ushort species, byte form, EntityContext context)
     {

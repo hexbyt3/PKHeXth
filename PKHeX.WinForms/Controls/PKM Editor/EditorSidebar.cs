@@ -20,8 +20,11 @@ public sealed class EditorSidebar : Control, IThemedControl
     [DefaultValue(40)]
     public int ItemHeight { get; set; } = 40;
 
-    [DefaultValue(7)]
-    public int PipSize { get; set; } = 7;
+    protected override void ScaleControl(SizeF factor, BoundsSpecified specified)
+    {
+        base.ScaleControl(factor, specified);
+        ItemHeight = (int)Math.Round(ItemHeight * factor.Height); // rows grow with the rest of the layout
+    }
 
     public event EventHandler? SelectedIndexChanged;
 
@@ -49,12 +52,12 @@ public sealed class EditorSidebar : Control, IThemedControl
         }
     }
 
-    public void AddItem(string name, string text, Color pip)
-        => InsertItem(_items.Count, name, text, pip);
+    public void AddItem(string name, string text, Color pip, string glyph = "")
+        => InsertItem(_items.Count, name, text, pip, glyph);
 
-    public void InsertItem(int index, string name, string text, Color pip)
+    public void InsertItem(int index, string name, string text, Color pip, string glyph = "")
     {
-        _items.Insert(index, new Item(name, text, pip));
+        _items.Insert(index, new Item(name, text, pip, glyph));
         int before = _selectedIndex;
         if (_selectedIndex == -1)
             _selectedIndex = 0;
@@ -99,6 +102,14 @@ public sealed class EditorSidebar : Control, IThemedControl
                 return i;
         }
         return -1;
+    }
+
+    /// <summary> Relabels every item from the translation key "Tab_{Name}" (the keys the old tab strip used). </summary>
+    public void Translate(Func<string, string, string> translate)
+    {
+        for (int i = 0; i < _items.Count; i++)
+            _items[i] = _items[i] with { Text = translate($"Tab_{_items[i].Name}", _items[i].Text) };
+        Invalidate();
     }
 
     public void SetItemInvalid(string name, bool invalid)
@@ -252,56 +263,47 @@ public sealed class EditorSidebar : Control, IThemedControl
         bool selected = index == _selectedIndex;
         bool hover = index == _hoverIndex;
 
-        var fill = selected ? p.Surface2
-            : hover ? p.HoverSurface
-            : p.Surface0;
-        using (var bg = new SolidBrush(fill))
-            g.FillRectangle(bg, rect);
-
+        var pill = Rectangle.FromLTRB(rect.X + 6, rect.Y + 3, rect.Right - 6, rect.Bottom - 3);
         if (selected)
-        {
-            using var accent = new SolidBrush(p.Accent);
-            g.FillRectangle(accent, new Rectangle(rect.X, rect.Y + 4, 3, rect.Height - 8));
-        }
+            Shapes.Fill(g, pill, 8, p.Mix(p.Surface0, p.Accent, p.IsDark ? 0.18f : 0.12f));
+        else if (hover)
+            Shapes.Fill(g, pill, 8, p.HoverSurface);
+        if (selected)
+            Shapes.Fill(g, new Rectangle(pill.X, pill.Y + 8, 3, pill.Height - 16), 1, p.Accent);
 
         var item = _items[index];
         bool invalid = _invalid.Contains(item.Name);
-        var pipColor = invalid ? p.Invalid : item.Pip;
-        DrawPip(g, rect, pipColor, selected, invalid, p);
+        DrawIcon(g, rect, item, selected, invalid, p);
         DrawLabel(g, rect, item.Text, p, selected, invalid);
 
-        if (selected && Focused)
+        if (selected && Focused && ShowFocusCues)
             DrawFocusRing(g, rect, p);
     }
 
-    private void DrawPip(Graphics g, Rectangle rect, Color pip, bool selected, bool invalid, ThemePalette p)
+    private Font? IconFont => Icons.Get((float)Math.Round(Font.Size + 2)); // null when no icon font: draw a colored dot instead
+
+    private int IconSize => (int)(ItemHeight * 0.45); // 18px at the original 40px row
+
+    private void DrawIcon(Graphics g, Rectangle rect, Item item, bool selected, bool invalid, ThemePalette p)
     {
-        var prev = g.SmoothingMode;
-        g.SmoothingMode = SmoothingMode.AntiAlias;
-
-        int x = rect.X + 12;
-        int y = rect.Y + ((rect.Height - PipSize) / 2);
-        var dot = new Rectangle(x, y, PipSize, PipSize);
-
-        using (var brush = new SolidBrush(pip))
-            g.FillEllipse(brush, dot);
-        if (!selected)
+        var box = new Rectangle(rect.X + 15, rect.Y + ((rect.Height - IconSize) / 2), IconSize, IconSize);
+        var color = invalid ? p.Invalid : selected ? item.Pip : p.TextMuted;
+        if (IconFont is not null && item.Glyph.Length != 0)
         {
-            using var ring = new Pen(Color.FromArgb(120, pip), 1f);
-            g.DrawEllipse(ring, new Rectangle(dot.X - 1, dot.Y - 1, dot.Width + 1, dot.Height + 1));
+            TextRenderer.DrawText(g, item.Glyph, IconFont, box, color,
+                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }
-        if (invalid)
+        else
         {
-            using var halo = new Pen(p.Invalid, 1f);
-            g.DrawEllipse(halo, new Rectangle(dot.X - 2, dot.Y - 2, dot.Width + 3, dot.Height + 3));
+            Shapes.Fill(g, Rectangle.Inflate(box, -5, -5), 4, color);
         }
-
-        g.SmoothingMode = prev;
+        if (invalid) // attention dot
+            Shapes.Fill(g, new Rectangle(box.Right - 5, box.Y - 1, 7, 7), 4, p.Invalid, p.Surface0);
     }
 
     private void DrawLabel(Graphics g, Rectangle rect, string text, ThemePalette p, bool selected, bool invalid)
     {
-        int textX = rect.X + 12 + PipSize + 8;
+        int textX = rect.X + 15 + IconSize + 10;
         var textRect = new Rectangle(textX, rect.Y, rect.Right - textX - 4, rect.Height);
 
         using var flags = new StringFormat
@@ -324,14 +326,12 @@ public sealed class EditorSidebar : Control, IThemedControl
 
     private static void DrawFocusRing(Graphics g, Rectangle rect, ThemePalette p)
     {
-        var inset = Rectangle.Inflate(rect, -2, -2);
-        using var pen = new Pen(p.FocusRing, 1f) { DashStyle = DashStyle.Dot };
-        g.DrawRectangle(pen, inset);
+        Shapes.Fill(g, Rectangle.FromLTRB(rect.X + 6, rect.Y + 3, rect.Right - 7, rect.Bottom - 4), 8, Color.Empty, p.FocusRing);
     }
 
     protected override AccessibleObject CreateAccessibilityInstance() => new SidebarAccessible(this);
 
-    private sealed record Item(string Name, string Text, Color Pip);
+    private sealed record Item(string Name, string Text, Color Pip, string Glyph);
 
     private sealed class SidebarAccessible(EditorSidebar owner) : ControlAccessibleObject(owner)
     {

@@ -132,6 +132,10 @@ public abstract class SpriteBuilder : ISpriteBuilder<Bitmap>
         return baseSprite;
     }
 
+    /// <summary> The Pokémon alone (shiny colors included), without item, shiny star or other marks layered on top. </summary>
+    public Bitmap GetBaseSprite(ushort species, byte form, byte gender, uint formarg, bool shiny, EntityContext context = EntityContext.None)
+        => GetBaseImage(species, form, gender, formarg, shiny, context);
+
     private Bitmap GetBaseImage(ushort species, byte form, byte gender, uint formarg, bool shiny, EntityContext context)
     {
         var img = FormInfo.IsTotemForm(species, form, context)

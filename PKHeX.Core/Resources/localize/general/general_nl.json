@@ -1,0 +1,8 @@
+{
+    "StatNames": [ "HP", "Aanval", "Verdediging", "Speciale Aanval", "Speciale Verdediging", "Snelheid" ],
+    "OriginalTrainer": "Oorspronkelijke Trainer",
+    "HandlingTrainer": "Huidige Trainer",
+    "GenderMale": "Mannelijk",
+    "GenderFemale": "Vrouwelijk",
+    "GenderGenderless": "Geslachtloos"
+}

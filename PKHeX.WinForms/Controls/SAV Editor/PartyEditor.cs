@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Windows.Forms;
 using PKHeX.Core;
 using PKHeX.Drawing.PokeSprite;
@@ -31,6 +32,16 @@ public partial class PartyEditor : UserControl, ISlotViewer<PictureBox>
         PartyPokeGrid.HorizontallyCenter(this);
         InitializeSlots();
         return true;
+    }
+
+    /// <summary> Resizes the party tiles to <paramref name="tile"/> (e.g. the box tiles' size, so both views match). </summary>
+    internal void FitTiles(Size tile)
+    {
+        if (PartyPokeGrid.Entries.Count == 0)
+            return;
+        int gap = (int)Math.Round(4 * Theming.Theme.UiScale);
+        PartyPokeGrid.FitTo(new Size(2 * (tile.Width + gap), 3 * (tile.Height + gap)));
+        Size = PartyPokeGrid.Size;
     }
 
     private void InitializeSlots()

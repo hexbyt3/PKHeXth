@@ -11,6 +11,7 @@ public sealed class StartupSettings : IStartupSettings
     [LocalizedDescription("Last version that the program was run with.")]
     public string Version { get; set; } = string.Empty;
 
+    [Browsable(false)] // superseded by Theme.Mode; still read once to migrate old configs
     [LocalizedDescription("Use the Dark color mode for the application on startup.")]
     public bool DarkMode { get; set; }
 

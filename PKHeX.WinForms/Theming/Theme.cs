@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Drawing;
 using System.Windows.Forms;
@@ -17,6 +18,21 @@ public static class Theme
     private static bool _applying;
 
     public static ThemePalette Current => _current;
+
+    /// <summary> Size of the main window's UI relative to the original PKHeX layout (fonts, fields, spacing, slot tiles). </summary>
+    public const float DefaultUiScale = 1.2f;
+
+    /// <summary> Current zoom of the main window; changes when the window is resized. </summary>
+    public static float UiScale { get; internal set; } = DefaultUiScale;
+
+    /// <summary> A point size picked at the default scale, at the current zoom. </summary>
+    public static float Pt(float size) => size * UiScale / DefaultUiScale;
+
+    /// <summary> Status / heatmap fill (stat colors, EV warnings): as-is in light mode, blended into the field in dark mode. </summary>
+    public static Color Tint(Color c) => _current.IsDark ? _current.Mix(_current.Surface1, c, 0.42f) : c;
+
+    /// <summary> Readable text color on <paramref name="back"/>. </summary>
+    public static Color TextOn(Color back) => back.GetBrightness() > 0.55f ? Color.Black : _current.IsDark ? _current.TextPrimary : Color.White;
     public static ThemeSettings Settings => _settings;
 
     public static event EventHandler? Changed;
@@ -58,11 +74,22 @@ public static class Theme
         RaiseChanged();
     }
 
+    private static Color _saveAccent = GameAccentResolver.Default;
+
+    /// <summary> Re-reads the theme settings (mode, accent) and repaints every open form. </summary>
+    public static void Refresh()
+    {
+        ApplyColorMode();
+        RebuildPalette();
+        RaiseChanged();
+    }
+
     public static void OnSaveFileLoaded(SaveFile? sav)
     {
+        _saveAccent = GameAccentResolver.Resolve(sav);
         if (_settings.AccentSource != AccentSource.FromSave)
             return;
-        var newAccent = GameAccentResolver.Resolve(sav);
+        var newAccent = _saveAccent;
         if (newAccent.ToArgb() == _current.Accent.ToArgb())
             return;
         _current = _current.WithAccent(newAccent);
@@ -77,11 +104,26 @@ public static class Theme
         try
         {
             ThemeWalker.Apply(root, _current);
+            if (root is Form { IsHandleCreated: true } f)
+                TintTitleBar(f);
         }
         finally
         {
             _applying = false;
         }
+    }
+
+    // Windows 11: paint the caption in the form's own background so the title bar blends into the app.
+    // Older Windows ignores these.
+    private static void TintTitleBar(Form f)
+    {
+        if (SystemInformation.HighContrast)
+            return;
+#pragma warning disable WFO5001, WFO9001
+        f.FormCaptionBackColor = f.BackColor;
+        f.FormCaptionTextColor = _current.TextPrimary;
+        f.FormBorderColor = _current.Border;
+#pragma warning restore WFO5001, WFO9001
     }
 
     private static void ApplyColorMode()
@@ -108,7 +150,7 @@ public static class Theme
         var accent = _settings.AccentSource switch
         {
             AccentSource.Custom => _settings.AccentColor,
-            AccentSource.FromSave => _current.Accent,
+            AccentSource.FromSave => _saveAccent,
             _ => GameAccentResolver.Default,
         };
 
@@ -125,6 +167,7 @@ public static class Theme
     private static ThemePalette HighContrastPalette() => new()
     {
         IsDark = SystemColors.Window.GetBrightness() < 0.5f,
+        Canvas = SystemColors.Control,
         Surface0 = SystemColors.Control,
         Surface1 = SystemColors.Window,
         Surface2 = SystemColors.ControlLight,
@@ -152,10 +195,27 @@ public static class Theme
         Changed?.Invoke(null, EventArgs.Empty);
     }
 
-    private static void OnIdleHookForms(object? sender, EventArgs e)
+    private static void OnIdleHookForms(object? sender, EventArgs e) => HookOpenForms();
+
+    /// <summary> Themes every open form that is not themed yet (normally done on the first idle after it opens). </summary>
+    public static void HookOpenForms()
     {
-        // Application.OpenForms spans threads; skip forms on other UI threads.
-        foreach (Form f in Application.OpenForms)
+        // Application.OpenForms spans threads (the splash screen closes on its own thread), so it can change while
+        // being read: copy it first, retrying if it changed mid-copy. Forms on other UI threads are skipped.
+        Form[] forms = [];
+        for (int attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                forms = [.. Application.OpenForms.Cast<Form>()];
+                break;
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
+
+        foreach (var f in forms)
         {
             if (f.IsDisposed || f.InvokeRequired)
                 continue;
@@ -169,6 +229,7 @@ public static class Theme
     {
         try
         {
+            Controls.SettingsView.UpgradePropertyGrids(f); // plugin settings windows get the settings page
             if (f.IsHandleCreated)
                 Apply(f);
             else

@@ -126,7 +126,7 @@ public partial class SAV_Database : Form
         PopulateComboBoxes();
 
         var settings = new TabPage { Text = "Settings" };
-        settings.Controls.Add(new PropertyGrid { Dock = DockStyle.Fill, SelectedObject = Main.Settings.EntityDb });
+        settings.Controls.Add(new Controls.SettingsView(Main.Settings.EntityDb));
         TC_SearchSettings.Controls.Add(settings);
 
         // Load Data

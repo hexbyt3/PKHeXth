@@ -62,16 +62,16 @@ public sealed class DrawConfig : IDisposable
     public Color BackLegal { get; set; } = Color.FromArgb(200, 255, 200);
 
     [Category(Moves), LocalizedDescription("Legal move choice text color.")]
-    public Color TextColor => SystemColors.WindowText;
+    public Color TextColor => Theming.Theme.Current.TextPrimary;
 
     [Category(Moves), LocalizedDescription("Illegal Legal move choice background color.")]
-    public Color BackColor => SystemColors.Window;
+    public Color BackColor => Theming.Theme.Current.Surface1;
 
     [Category(Moves), LocalizedDescription("Highlighted move choice background color.")]
-    public Color BackHighlighted => SystemColors.Highlight;
+    public Color BackHighlighted => Theming.Theme.Current.Mix(Theming.Theme.Current.Surface1, Theming.Theme.Current.TextPrimary, 0.12f); // neutral, matches other lists
 
     [Category(Moves), LocalizedDescription("Highlighted move choice text color.")]
-    public Color TextHighlighted => SystemColors.HighlightText;
+    public Color TextHighlighted => Theming.Theme.Current.TextPrimary;
 
     #endregion
 
@@ -102,7 +102,7 @@ public sealed class DrawConfig : IDisposable
 
     public void LoadBrushes()
     {
-        Brushes.BackLegal = new SolidBrush(BackLegal);
+        Brushes.BackLegal = new SolidBrush(Theming.Theme.Tint(BackLegal)); // toned into the dark list in dark mode
         Brushes.Text = new SolidBrush(TextColor);
         Brushes.BackDefault = new SolidBrush(BackColor);
         Brushes.TextHighlighted = new SolidBrush(TextHighlighted);

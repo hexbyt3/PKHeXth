@@ -68,7 +68,6 @@ namespace PKHeX.WinForms
             PKME_Tabs = new Controls.PKMEditor();
             C_SAV = new Controls.SAVEditor();
             topHeader = new Controls.TopHeader();
-            trainerPlate = new Controls.TrainerPlate();
             statusStrip = new System.Windows.Forms.StatusStrip();
             SL_SavePath = new System.Windows.Forms.ToolStripStatusLabel();
             SL_Spring = new System.Windows.Forms.ToolStripStatusLabel();
@@ -389,16 +388,17 @@ namespace PKHeX.WinForms
             // splitContainer1.Panel2
             // 
             splitContainer1.Panel2.Controls.Add(C_SAV);
-            splitContainer1.Panel2.Padding = new System.Windows.Forms.Padding(0, 0, 1, 3);
+            splitContainer1.Panel2.Padding = new System.Windows.Forms.Padding(9, 6, 16, 16);
+            splitContainer1.Panel1.Padding = new System.Windows.Forms.Padding(16, 6, 9, 16);
             splitContainer1.Size = new System.Drawing.Size(856, 359);
-            splitContainer1.SplitterDistance = 400;
-            splitContainer1.SplitterWidth = 1;
+            splitContainer1.SplitterDistance = 425;
+            splitContainer1.SplitterWidth = 2;
             splitContainer1.TabIndex = 105;
             // 
             // dragout
             // 
             dragout.BackColor = System.Drawing.Color.Transparent;
-            dragout.Location = new System.Drawing.Point(24, 0);
+            dragout.Location = new System.Drawing.Point(40, 6);
             dragout.Margin = new System.Windows.Forms.Padding(0);
             dragout.Name = "dragout";
             dragout.Size = new System.Drawing.Size(72, 56);
@@ -425,7 +425,7 @@ namespace PKHeX.WinForms
             // PN_HeroCard
             //
             PN_HeroCard.BackColor = System.Drawing.Color.Transparent;
-            PN_HeroCard.Location = new System.Drawing.Point(20, 0);
+            PN_HeroCard.Location = new System.Drawing.Point(36, 6);
             PN_HeroCard.Margin = new System.Windows.Forms.Padding(0);
             PN_HeroCard.Name = "PN_HeroCard";
             PN_HeroCard.Size = new System.Drawing.Size(80, 58);
@@ -471,25 +471,15 @@ namespace PKHeX.WinForms
             // topHeader
             //
             topHeader.Dock = System.Windows.Forms.DockStyle.Top;
-            topHeader.Height = 44;
+            topHeader.Height = 52;
             topHeader.Location = new System.Drawing.Point(0, 0);
             topHeader.Margin = new System.Windows.Forms.Padding(0);
             topHeader.Name = "topHeader";
-            topHeader.Size = new System.Drawing.Size(880, 44);
+            topHeader.Size = new System.Drawing.Size(880, 52);
             topHeader.TabIndex = 110;
             topHeader.Controls.Add(PB_Legal);
             topHeader.Controls.Add(L_UpdateAvailable);
             topHeader.Controls.Add(menuStrip1);
-            //
-            // trainerPlate
-            //
-            trainerPlate.Dock = System.Windows.Forms.DockStyle.Top;
-            trainerPlate.Height = 32;
-            trainerPlate.Location = new System.Drawing.Point(0, 44);
-            trainerPlate.Margin = new System.Windows.Forms.Padding(0);
-            trainerPlate.Name = "trainerPlate";
-            trainerPlate.Size = new System.Drawing.Size(880, 32);
-            trainerPlate.TabIndex = 111;
             //
             // statusStrip
             //
@@ -536,16 +526,14 @@ namespace PKHeX.WinForms
             AllowDrop = true;
             AutoScaleDimensions = new System.Drawing.SizeF(96F, 96F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi;
-            ClientSize = new System.Drawing.Size(880, 460);
+            ClientSize = new System.Drawing.Size(945, 566);
             Controls.Add(splitContainer1);
-            Controls.Add(trainerPlate);
             Controls.Add(topHeader);
             Controls.Add(statusStrip);
-            FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             Icon = Properties.Resources.Icon;
             KeyPreview = true;
             Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            MaximizeBox = false;
             Name = "Main";
             StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             Text = "PKHeX";
@@ -606,7 +594,6 @@ namespace PKHeX.WinForms
         private PKHeX.WinForms.Controls.AccentStatusChip PB_Legal;
         private PKHeX.WinForms.Controls.HeroDragoutCard PN_HeroCard;
         private PKHeX.WinForms.Controls.TopHeader topHeader;
-        private PKHeX.WinForms.Controls.TrainerPlate trainerPlate;
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.ToolStripStatusLabel SL_SavePath;
         private System.Windows.Forms.ToolStripStatusLabel SL_Spring;

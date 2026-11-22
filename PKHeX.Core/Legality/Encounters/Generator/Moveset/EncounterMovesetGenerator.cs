@@ -260,6 +260,7 @@ public static class EncounterMovesetGenerator
         Static => GetStatic(pk, needs, chain, version, generator),
         Trade => GetTrades(pk, needs, chain, version, generator),
         Slot => GetSlots(pk, needs, chain, version, generator),
+        EncounterTypeGroup.None => [], // plugins may persist None in their priority list; nothing to search
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
     };
 

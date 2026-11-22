@@ -26,7 +26,9 @@ public static class GameInfo
         set => Sources = new GameDataSource(_strings = value);
     }
 
-    public static GameStrings GetStrings(string lang) => Languages.Get(lang);
+    // Dutch is a program-only language: the games have no Dutch text, so it shares the English game strings
+    // (a second English-based instance would re-apply the in-place fixes to the shared cached lists).
+    public static GameStrings GetStrings(string lang) => Languages.Get(lang == "nl" ? GameLanguage.DefaultLanguage : lang);
 
     public static string GetVersionName(GameVersion version)
     {

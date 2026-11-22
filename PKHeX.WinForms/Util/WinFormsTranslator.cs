@@ -35,6 +35,9 @@ public static class WinFormsTranslator
 
     public static IReadOnlyDictionary<string, string> GetDictionary(string lang) => GetContext(lang).Lookup;
 
+    /// <summary> Text for a runtime string (not a control) from the current language file, or <paramref name="fallback"/>. </summary>
+    public static string Tr(string key, string fallback) => GetContext(Main.CurrentLanguage).GetTranslatedText(key, fallback);
+
     private static TranslationContext GetContext(string lang)
     {
         if (Context.TryGetValue(lang, out var context))
@@ -92,7 +95,12 @@ public static class WinFormsTranslator
 
     private static void TranslateControl(object c, TranslationContext context, ReadOnlySpan<char> formname)
     {
-        if (c is Control r)
+        if (c is Controls.EditorSidebar sidebar)
+        {
+            var form = formname.ToString();
+            sidebar.Translate((key, text) => context.GetTranslatedText($"{form}.{key}", text));
+        }
+        else if (c is Control r)
         {
             var current = r.Text;
             var updated = context.GetTranslatedText($"{formname}.{r.Name}", current);
@@ -140,6 +148,9 @@ public static class WinFormsTranslator
                     foreach (var obj in GetToolStripMenuItems(menu))
                         yield return obj;
 
+                    break;
+                case Controls.EditorSidebar sidebar: // owner-drawn items, no Text of its own
+                    yield return sidebar;
                     break;
                 default:
                     if (string.IsNullOrWhiteSpace(z.Name))

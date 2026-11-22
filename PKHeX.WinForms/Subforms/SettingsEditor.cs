@@ -4,69 +4,74 @@ using System.Linq;
 using System.Windows.Forms;
 
 using PKHeX.Core;
+using PKHeX.WinForms.Controls;
+using PKHeX.WinForms.Theming;
 
 namespace PKHeX.WinForms;
 
+/// <summary>
+/// Settings window: a <see cref="SettingsView"/> over the settings object plus a footer (Reset all, Done).
+/// </summary>
 public partial class SettingsEditor : Form
 {
     public bool BlankChanged { get; private set; }
 
-    // Remember the last settings tab for the remainder of the session.
-    private static string? Last;
-
     public SettingsEditor(object obj)
     {
         InitializeComponent();
-        WinFormsUtil.TranslateInterface(this, Main.CurrentLanguage);
-        LoadSettings(obj);
 
+        var view = new SettingsView(obj);
         if (obj is PKHeXSettings s)
         {
-            static bool IsInvalidSaveFileVersion(GameVersion value) => value is 0 or GameVersion.GO or GameVersion.CP;
-            CB_Blank.InitializeBinding();
-            CB_Blank.DataSource = GameInfo.Sources.VersionDataSource.Where(z => !IsInvalidSaveFileVersion((GameVersion)z.Value)).ToList();
-            CB_Blank.SelectedValue = (int)s.Startup.DefaultSaveVersion;
-            CB_Blank.SelectedValueChanged += (_, _) =>
-            {
-                var index = WinFormsUtil.GetIndex(CB_Blank);
-                var version = (GameVersion)index;
-                if (IsInvalidSaveFileVersion(version))
-                    return;
-                s.Startup.DefaultSaveVersion = version;
-            };
-            CB_Blank.SelectedIndexChanged += (_, _) => BlankChanged = !IsInvalidSaveFileVersion((GameVersion)WinFormsUtil.GetIndex(CB_Blank));
+            view.AddCustomRow(s.Startup, WinFormsTranslator.Tr("SettingsTitle.BlankSaveVersion", "Blank save version"),
+                WinFormsTranslator.Tr("LocalizedDescription.BlankSaveVersion", "Game used for the empty save created when PKHeX starts without a save file."), () => CreateBlankEditor(s));
             B_Reset.Click += (_, _) => DeleteSettings();
         }
         else
         {
-            FLP_Blank.Visible = false;
             B_Reset.Visible = false;
         }
 
-        if (Last is not null && tabControl1.Controls[Last] is TabPage tab)
-            tabControl1.SelectedTab = tab;
-        tabControl1.SelectedIndexChanged += (_, _) => Last = tabControl1.SelectedTab?.Name;
+        CancelButton = B_Done;
+        B_Done.Tag = ThemeWalker.PrimaryTag;
+        var footer = new TableLayoutPanel { Dock = DockStyle.Bottom, Height = LogicalToDeviceUnits(60), ColumnCount = 3, RowCount = 1, Padding = new Padding(16, 12, 16, 12) };
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        footer.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        B_Reset.Anchor = AnchorStyles.Left;
+        B_Done.Anchor = AnchorStyles.Right;
+        footer.Controls.Add(B_Reset, 0, 0);
+        footer.Controls.Add(B_Done, 2, 0);
+        footer.Paint += (_, e) =>
+        {
+            using var pen = new System.Drawing.Pen(Theme.Current.Border);
+            e.Graphics.DrawLine(pen, 0, 0, footer.Width, 0);
+        };
 
+        Controls.Add(view);
+        Controls.Add(footer);
+        WinFormsUtil.TranslateInterface(this, Main.CurrentLanguage);
         this.CenterToForm(FindForm());
     }
 
-    private void LoadSettings(object obj)
+    private ComboBox CreateBlankEditor(PKHeXSettings s)
     {
-        var type = obj.GetType();
-        var props = ReflectUtil.GetPropertiesCanWritePublicDeclared(type)
-            .Order();
-        foreach (var p in props)
+        static bool IsInvalid(GameVersion value) => value is 0 or GameVersion.GO or GameVersion.CP;
+        var cb = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = LogicalToDeviceUnits(220), Name = "CB_Blank", BindingContext = BindingContext };
+        cb.InitializeBinding();
+        cb.DataSource = GameInfo.Sources.VersionDataSource.Where(z => !IsInvalid((GameVersion)z.Value)).ToList();
+        cb.SelectedValue = (int)s.Startup.DefaultSaveVersion;
+        cb.HandleCreated += (_, _) => cb.SelectedValue = (int)s.Startup.DefaultSaveVersion; // binding resets the pick when it attaches
+        // Only user picks count: data binding can raise value changes on its own, and BlankChanged reloads the save.
+        cb.SelectionChangeCommitted += (_, _) =>
         {
-            var state = ReflectUtil.GetValue(obj, p);
-            if (state is null)
-                continue;
-
-            var tab = new TabPage(p) { Name = $"Tab_{p}" };
-            var pg = new PropertyGrid { SelectedObject = state, Dock = DockStyle.Fill };
-            tab.Controls.Add(pg);
-            pg.ExpandAllGridItems();
-            tabControl1.TabPages.Add(tab);
-        }
+            var version = (GameVersion)WinFormsUtil.GetIndex(cb);
+            if (IsInvalid(version) || version == s.Startup.DefaultSaveVersion)
+                return;
+            s.Startup.DefaultSaveVersion = version;
+            BlankChanged = true;
+        };
+        return cb;
     }
 
     private void SettingsEditor_KeyDown(object sender, KeyEventArgs e)

@@ -21,6 +21,25 @@ public partial class MoveChoice : UserControl
     public bool HideLegality { private get; set; }
     public void SetContext(EntityContext context) => Context = context;
 
+    /// <summary> Left edge of the move box, relative to this control. </summary>
+    public int MoveLeft => FLP_Move.Left + PB_Type.Margin.Horizontal + PB_Type.Width + CB_Move.Margin.Left;
+
+    /// <summary> Width of the move box. </summary>
+    public int MoveWidth => CB_Move.Width;
+
+    /// <summary> Left edge of the PP box, relative to this control. </summary>
+    public int PPLeft => MoveLeft + CB_Move.Width + CB_Move.Margin.Right + TB_PP.Margin.Left;
+
+    /// <summary> Widths of the PP column (box + gap) and the PP Ups column. </summary>
+    public (int PP, int Ups) ColumnWidths => (TB_PP.Width + TB_PP.Margin.Right, CB_PPUps.Width);
+
+    /// <summary> Sizes the move box so the row, from this control's left edge to the end of the Ups box, is <paramref name="width"/> wide. </summary>
+    public void FitWidth(int width)
+    {
+        int rest = MoveLeft + CB_Move.Margin.Right + TB_PP.Margin.Horizontal + TB_PP.Width + CB_PPUps.Margin.Left + CB_PPUps.Width;
+        CB_Move.Width = Math.Max(LogicalToDeviceUnits(100), width - rest);
+    }
+
     private void UpdateTypeSprite(int value)
     {
         if (value <= 0)

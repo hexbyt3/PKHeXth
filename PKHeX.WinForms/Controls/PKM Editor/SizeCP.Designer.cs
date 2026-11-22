@@ -130,7 +130,7 @@ namespace PKHeX.WinForms.Controls
             NUD_HeightScalar.Margin = new System.Windows.Forms.Padding(0);
             NUD_HeightScalar.Maximum = new decimal(new int[] { 255, 0, 0, 0 });
             NUD_HeightScalar.Name = "NUD_HeightScalar";
-            NUD_HeightScalar.Size = new System.Drawing.Size(44, 25);
+            NUD_HeightScalar.Size = new System.Drawing.Size(56, 25);
             NUD_HeightScalar.TabIndex = 1;
             NUD_HeightScalar.Value = new decimal(new int[] { 255, 0, 0, 0 });
             NUD_HeightScalar.ValueChanged += NUD_HeightScalar_ValueChanged;
@@ -170,7 +170,7 @@ namespace PKHeX.WinForms.Controls
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            tableLayoutPanel1.Size = new System.Drawing.Size(228, 96);
+            tableLayoutPanel1.Size = new System.Drawing.Size(252, 96);
             tableLayoutPanel1.TabIndex = 2;
             // 
             // L_Scale
@@ -203,7 +203,7 @@ namespace PKHeX.WinForms.Controls
             NUD_WeightScalar.Margin = new System.Windows.Forms.Padding(0);
             NUD_WeightScalar.Maximum = new decimal(new int[] { 255, 0, 0, 0 });
             NUD_WeightScalar.Name = "NUD_WeightScalar";
-            NUD_WeightScalar.Size = new System.Drawing.Size(44, 25);
+            NUD_WeightScalar.Size = new System.Drawing.Size(56, 25);
             NUD_WeightScalar.TabIndex = 3;
             NUD_WeightScalar.Value = new decimal(new int[] { 255, 0, 0, 0 });
             NUD_WeightScalar.ValueChanged += NUD_WeightScalar_ValueChanged;
@@ -272,7 +272,7 @@ namespace PKHeX.WinForms.Controls
             NUD_Scale.Margin = new System.Windows.Forms.Padding(0);
             NUD_Scale.Maximum = new decimal(new int[] { 255, 0, 0, 0 });
             NUD_Scale.Name = "NUD_Scale";
-            NUD_Scale.Size = new System.Drawing.Size(44, 25);
+            NUD_Scale.Size = new System.Drawing.Size(56, 25);
             NUD_Scale.TabIndex = 3;
             NUD_Scale.Value = new decimal(new int[] { 255, 0, 0, 0 });
             NUD_Scale.ValueChanged += NUD_Scale_ValueChanged;
@@ -294,7 +294,7 @@ namespace PKHeX.WinForms.Controls
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
             Controls.Add(tableLayoutPanel1);
             Name = "SizeCP";
-            Size = new System.Drawing.Size(228, 96);
+            Size = new System.Drawing.Size(252, 96);
             FLP_CP.ResumeLayout(false);
             FLP_CP.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)NUD_HeightScalar).EndInit();

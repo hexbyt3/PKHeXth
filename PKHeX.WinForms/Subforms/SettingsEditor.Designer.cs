@@ -13,7 +13,7 @@ namespace PKHeX.WinForms
         /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
         protected override void Dispose(bool disposing)
         {
-            if (disposing && (components is not null))
+            if (disposing && (components != null))
             {
                 components.Dispose();
             }
@@ -28,93 +28,49 @@ namespace PKHeX.WinForms
         /// </summary>
         private void InitializeComponent()
         {
-            FLP_Blank = new System.Windows.Forms.FlowLayoutPanel();
-            L_Blank = new System.Windows.Forms.Label();
-            CB_Blank = new System.Windows.Forms.ComboBox();
-            tabControl1 = new System.Windows.Forms.TabControl();
             B_Reset = new System.Windows.Forms.Button();
-            FLP_Blank.SuspendLayout();
+            B_Done = new System.Windows.Forms.Button();
             SuspendLayout();
-            // 
-            // FLP_Blank
-            // 
-            FLP_Blank.Controls.Add(L_Blank);
-            FLP_Blank.Controls.Add(CB_Blank);
-            FLP_Blank.Dock = System.Windows.Forms.DockStyle.Top;
-            FLP_Blank.Location = new System.Drawing.Point(0, 0);
-            FLP_Blank.Name = "FLP_Blank";
-            FLP_Blank.Size = new System.Drawing.Size(494, 27);
-            FLP_Blank.TabIndex = 1;
-            // 
-            // L_Blank
-            // 
-            L_Blank.AutoSize = true;
-            L_Blank.Location = new System.Drawing.Point(3, 0);
-            L_Blank.Name = "L_Blank";
-            L_Blank.Padding = new System.Windows.Forms.Padding(0, 6, 0, 0);
-            L_Blank.Size = new System.Drawing.Size(107, 21);
-            L_Blank.TabIndex = 0;
-            L_Blank.Text = "Blank Save Version:";
-            // 
-            // CB_Blank
-            // 
-            CB_Blank.AutoCompleteMode = System.Windows.Forms.AutoCompleteMode.SuggestAppend;
-            CB_Blank.AutoCompleteSource = System.Windows.Forms.AutoCompleteSource.ListItems;
-            CB_Blank.FormattingEnabled = true;
-            CB_Blank.Location = new System.Drawing.Point(116, 3);
-            CB_Blank.Name = "CB_Blank";
-            CB_Blank.Size = new System.Drawing.Size(180, 23);
-            CB_Blank.TabIndex = 1;
-            // 
-            // tabControl1
-            // 
-            tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
-            tabControl1.Location = new System.Drawing.Point(0, 27);
-            tabControl1.Multiline = true;
-            tabControl1.Name = "tabControl1";
-            tabControl1.SelectedIndex = 0;
-            tabControl1.Size = new System.Drawing.Size(494, 309);
-            tabControl1.SizeMode = System.Windows.Forms.TabSizeMode.FillToRight;
-            tabControl1.TabIndex = 3;
-            // 
+            //
             // B_Reset
-            // 
-            B_Reset.Anchor = System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right;
-            B_Reset.Location = new System.Drawing.Point(416, 2);
+            //
+            B_Reset.AutoSize = true;
             B_Reset.Name = "B_Reset";
-            B_Reset.Size = new System.Drawing.Size(75, 23);
-            B_Reset.TabIndex = 4;
+            B_Reset.Padding = new System.Windows.Forms.Padding(8, 2, 8, 2);
+            B_Reset.TabIndex = 2;
             B_Reset.Text = "Reset All";
-            B_Reset.UseVisualStyleBackColor = true;
-            // 
+            //
+            // B_Done
+            //
+            B_Done.AutoSize = true;
+            B_Done.DialogResult = System.Windows.Forms.DialogResult.OK;
+            B_Done.Name = "B_Done";
+            B_Done.Padding = new System.Windows.Forms.Padding(16, 2, 16, 2);
+            B_Done.TabIndex = 3;
+            B_Done.Text = "Done";
+            //
             // SettingsEditor
-            // 
+            //
+            AcceptButton = B_Done;
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Inherit;
-            ClientSize = new System.Drawing.Size(494, 336);
-            Controls.Add(B_Reset);
-            Controls.Add(tabControl1);
-            Controls.Add(FLP_Blank);
-            FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
+            ClientSize = new System.Drawing.Size(900, 620);
+            FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
             Icon = Properties.Resources.Icon;
             KeyPreview = true;
-            MaximizeBox = false;
+            MaximizeBox = true;
             MinimizeBox = false;
-            MinimumSize = new System.Drawing.Size(510, 375);
+            MinimumSize = new System.Drawing.Size(720, 480);
             Name = "SettingsEditor";
+            ShowInTaskbar = false;
             StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             Text = "Settings";
             KeyDown += SettingsEditor_KeyDown;
-            FLP_Blank.ResumeLayout(false);
-            FLP_Blank.PerformLayout();
             ResumeLayout(false);
         }
 
         #endregion
 
-        private System.Windows.Forms.FlowLayoutPanel FLP_Blank;
-        private System.Windows.Forms.Label L_Blank;
-        private System.Windows.Forms.ComboBox CB_Blank;
-        private System.Windows.Forms.TabControl tabControl1;
         private System.Windows.Forms.Button B_Reset;
+        private System.Windows.Forms.Button B_Done;
     }
 }

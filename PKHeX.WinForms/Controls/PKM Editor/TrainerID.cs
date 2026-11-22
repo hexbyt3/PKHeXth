@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows.Forms;
 using PKHeX.Core;
 
@@ -14,6 +15,37 @@ public partial class TrainerID : UserControl
     private int XorFormat;
     private TrainerIDFormat DisplayType { get; set; }
     private ITrainerID32 Trainer = null!;
+
+    /// <summary> Lines the control up with a form grid: the first label spans the label column (left-aligned), so the
+    /// first ID box starts where the other fields start. </summary>
+    public void AlignToGrid(int labelWidth)
+    {
+        (_gridLabel, _defaultLabel) = (labelWidth, Label_SID.Width);
+        ApplyGridAlignment();
+    }
+
+    private int _gridLabel, _defaultLabel;
+
+    // The label order depends on the ID format (Gen 7+ shows SID first), so this re-runs after every reorder.
+    private void ApplyGridAlignment()
+    {
+        if (_gridLabel == 0)
+            return;
+        bool first = true;
+        foreach (var l in FLP.Controls.OfType<Label>())
+        {
+            l.Width = first ? _gridLabel : _defaultLabel;
+            l.TextAlign = first ? System.Drawing.ContentAlignment.MiddleLeft : System.Drawing.ContentAlignment.MiddleRight;
+            first = false;
+        }
+    }
+
+    protected override void ScaleControl(System.Drawing.SizeF factor, BoundsSpecified specified)
+    {
+        base.ScaleControl(factor, specified);
+        _gridLabel = (int)Math.Round(_gridLabel * factor.Width);
+        _defaultLabel = (int)Math.Round(_defaultLabel * factor.Width);
+    }
 
     public void UpdateTSV()
     {
@@ -101,6 +133,7 @@ public partial class TrainerID : UserControl
         }
 
         (DisplayType, XorFormat) = (display, format);
+        ApplyGridAlignment();
     }
 
     private Control[] GetControlsForFormat(TrainerIDFormat format) => format switch

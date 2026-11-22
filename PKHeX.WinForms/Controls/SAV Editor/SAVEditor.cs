@@ -69,6 +69,9 @@ public partial class SAVEditor : UserControl, ISlotViewer<PictureBox>, ISaveFile
     public SAVEditor()
     {
         InitializeComponent();
+        Tab_Box.Resize += (_, _) => FitBox();
+        Tab_PartyBattle.Resize += (_, _) => FitParty();
+        InitializeToolTiles();
 
         L_SlotOccupied = [L_DC1, L_DC2];
         TB_SlotEXP = [TB_Daycare1XP, TB_Daycare2XP];
@@ -290,7 +293,10 @@ public partial class SAVEditor : UserControl, ISlotViewer<PictureBox>, ISaveFile
                 var pb = UpdateSlot(i);
                 var current = pb.Image;
                 if (current is not null)
+                {
+                    SlotUtil.SetSubject(pb, null); // faded: no longer matches the plain Pokémon, show it as-is
                     pb.Image = ImageUtil.ChangeOpacity(current, 0.6);
+                }
             }
         }
 
@@ -1139,6 +1145,123 @@ public partial class SAVEditor : UserControl, ISlotViewer<PictureBox>, ISaveFile
         return WindowTranslationRequired;
     }
 
+    // Save editors are shown as icon tiles filling the space below the save-specific fields.
+    private void InitializeToolTiles()
+    {
+        foreach (var b in FLP_SAVtools.Controls.OfType<Button>())
+        {
+            b.AutoSize = false;
+            b.Size = new Size(LogicalToDeviceUnits(96), LogicalToDeviceUnits(66));
+            b.Margin = new Padding(LogicalToDeviceUnits(4));
+            Theming.ThemeWalker.SetTileGlyph(b, ToolGlyph(b.Name));
+        }
+        FLP_SAVtools.Padding = new Padding(LogicalToDeviceUnits(4));
+        Tab_SAV.Resize += (_, _) => LayoutSaveTools();
+        Tab_SAV.VisibleChanged += (_, _) => LayoutSaveTools();
+    }
+
+    private void LayoutSaveTools()
+    {
+        if (!Tab_SAV.Visible) // child visibility reads false while the page is hidden
+            return;
+        int top = 0;
+        foreach (Control c in Tab_SAV.Controls)
+        {
+            if (c != FLP_SAVtools && c.Visible)
+                top = Math.Max(top, c.Bottom);
+        }
+        top += LogicalToDeviceUnits(8);
+        FLP_SAVtools.Dock = DockStyle.None;
+        FLP_SAVtools.SetBounds(0, top, Tab_SAV.ClientSize.Width, Math.Max(0, Tab_SAV.ClientSize.Height - top));
+        FillWidth();
+    }
+
+    // Tool tiles, and the action buttons above them, share the full width in equal columns.
+    private void FillWidth()
+    {
+        // Measured, not recomputed: padding and margins have been through DPI and UI scaling (tile margin = padding).
+        var pad = FLP_SAVtools.Padding;
+        int m = pad.Left;
+        int width = FLP_SAVtools.Width - pad.Horizontal;
+
+        var actions = FLP_SAVToolsMisc.Controls.Cast<Control>().Where(c => c.Visible).ToList();
+        FLP_SAVToolsMisc.Padding = new Padding(pad.Left, 0, pad.Right, 0);
+        foreach (var a in actions)
+        {
+            a.Margin = new Padding(m, 0, m, 0);
+            a.Width = (width / actions.Count) - (2 * m);
+        }
+
+        var tiles = FLP_SAVtools.Controls.Cast<Control>().Where(c => c.Visible).ToList();
+        if (tiles.Count == 0)
+            return;
+        int cell = (tiles[0].Height * 3 / 2) + (2 * m); // tiles stay at least 3:2
+        int cols = Math.Clamp(width / cell, 1, tiles.Count);
+        int rows = (tiles.Count + cols - 1) / cols;
+        if ((rows * tiles[0].Height) + (rows * 2 * m) + (2 * m) > FLP_SAVtools.ClientSize.Height)
+            width -= SystemInformation.VerticalScrollBarWidth; // the tiles will scroll
+        int w = (width / Math.Clamp(width / cell, 1, tiles.Count)) - (2 * m);
+        foreach (var t in tiles)
+        {
+            if (t.Width != w)
+                t.Width = w;
+        }
+    }
+
+    private static string ToolGlyph(string name) => name switch
+    {
+        nameof(B_OpenTrainerInfo) => "",
+        nameof(B_OpenItemPouch) => "",
+        nameof(B_OpenBoxLayout) or nameof(B_OtherSlots) => "",
+        nameof(B_OpenWondercards) or nameof(B_OpenHallofFame) => "",
+        nameof(B_OpenOPowers) => "",
+        nameof(B_OpenEventFlags) => "",
+        nameof(B_OpenPokedex) => "",
+        nameof(B_OpenLinkInfo) => "",
+        nameof(B_OpenSecretBase) or nameof(B_OpenUnityTowerEditor) or nameof(B_FestivalPlaza) => "",
+        nameof(B_OpenBerryField) or nameof(B_OpenPokeblocks) or nameof(B_OpenPokepuffs) or nameof(B_OpenPokeBeans)
+            or nameof(B_Donuts) or nameof(B_Poffins) or nameof(B_OpenApricorn) or nameof(B_OpenHoneyTreeEditor) => "",
+        nameof(B_OpenSuperTraining) => "",
+        nameof(B_OUTPasserby) => "",
+        nameof(B_DLC) => "",
+        nameof(B_CellsStickers) or nameof(B_OpenSealStickers) or nameof(B_OpenBattlePass) => "",
+        nameof(B_OpenMiscEditor) => "",
+        nameof(B_OpenFriendSafari) or nameof(B_OpenUGSEditor) => "",
+        nameof(B_OpenRTCEditor) => "",
+        nameof(B_OpenGeonetEditor) => "",
+        nameof(B_OpenChatterEditor) => "",
+        nameof(B_Roamer) => "",
+        nameof(B_MailBox) => "",
+        nameof(B_Raids) or nameof(B_RaidsDLC1) or nameof(B_RaidsDLC2) or nameof(B_RaidsSevenStar) => "",
+        nameof(B_Blocks) => "",
+        nameof(B_OpenGear) or nameof(B_OpenFashion) => "",
+        _ => "",
+    };
+
+    // The box grid fills the tab: tiles grow into the free space under the box selector row.
+    internal void FitBox()
+    {
+        var grid = Box.BoxPokeGrid;
+        int pad = LogicalToDeviceUnits(8);
+        grid.FitTo(new Size(Tab_Box.ClientSize.Width - (2 * pad), Tab_Box.ClientSize.Height - grid.Top - (2 * pad)));
+        grid.Left = 0;
+        Box.Width = grid.Width; // shrink too when the window zooms out (RecenterControls only ever grows the box)
+        Box.RecenterControls();
+        Box.HorizontallyCenter(Tab_Box);
+        Box.Top = pad;
+        FitParty();
+    }
+
+    // Party tiles match the box tiles; the party sits centered in its tab.
+    private void FitParty()
+    {
+        if (Box.BoxPokeGrid.Entries.Count == 0)
+            return;
+        SL_Party.FitTiles(Box.BoxPokeGrid.Entries[0].Size);
+        SL_Party.Location = new Point((Tab_PartyBattle.ClientSize.Width - SL_Party.Width) / 2,
+            Math.Max(LogicalToDeviceUnits(8), (Tab_PartyBattle.ClientSize.Height - SL_Party.Height) / 2));
+    }
+
     private void ToggleViewReset()
     {
         // Close sub-forms that are SaveFile dependent
@@ -1153,6 +1276,7 @@ public partial class SAVEditor : UserControl, ISlotViewer<PictureBox>, ISaveFile
             if (newSlots)
             {
                 Box.HorizontallyCenter(Tab_Box);
+                FitBox();
                 foreach (var pb in Box.SlotPictureBoxes)
                     pb.ContextMenuStrip = menu.mnuVSD;
 
@@ -1172,7 +1296,7 @@ public partial class SAVEditor : UserControl, ISlotViewer<PictureBox>, ISaveFile
             bool newSlots = SL_Party.InitializeFromSAV(SAV);
             if (newSlots)
             {
-                SL_Party.HorizontallyCenter(Tab_PartyBattle);
+                FitParty();
                 foreach (var pb in SL_Party.SlotPictureBoxes)
                     pb.ContextMenuStrip = menu.mnuVSD;
             }
@@ -1302,6 +1426,7 @@ public partial class SAVEditor : UserControl, ISlotViewer<PictureBox>, ISaveFile
         var list = FLP_SAVtools.Controls.OfType<Control>().OrderBy(z => z.Text).ToArray();
         FLP_SAVtools.Controls.Clear();
         FLP_SAVtools.Controls.AddRange(list);
+        LayoutSaveTools();
 
         SL_Extra.SAV = sav;
         SL_Extra.Initialize(sav.GetExtraSlots(HaX), InitializeDragDrop);

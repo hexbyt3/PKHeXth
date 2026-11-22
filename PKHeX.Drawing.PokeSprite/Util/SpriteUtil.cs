@@ -253,6 +253,19 @@ public static class SpriteUtil
 
     public static Bitmap GetLegalIndicator(bool valid) => valid ? Resources.valid : Resources.warn;
 
+    /// <summary>
+    /// The Pokémon of <see cref="Sprite(PKM)"/> on the same canvas but without any marks (item, shiny star, flags,
+    /// backgrounds), so a slot can zoom the Pokémon on its own. Null when there is no such plain image (empty, egg, shadow).
+    /// </summary>
+    public static Bitmap? SubjectSprite(this PKM pk)
+    {
+        if (pk.Species == 0 || pk.IsEgg || pk is IShadowCapture { IsShadow: true })
+            return null;
+        var formarg = pk is IFormArgument f ? f.FormArgument : 0;
+        var shiny = ShinyExtensions.GetType(pk).IsShiny();
+        return Spriter.GetBaseSprite(pk.Species, pk.Form, pk.Gender, formarg, shiny, pk.Context);
+    }
+
     // Extension Methods
     public static Bitmap Sprite(this PKM pk) => GetSprite(pk);
 

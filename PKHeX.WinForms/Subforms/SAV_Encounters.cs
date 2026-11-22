@@ -99,7 +99,7 @@ public partial class SAV_Encounters : Form
         GetTypeFilters();
 
         var settings = new TabPage { Text = "Settings" };
-        settings.Controls.Add(new PropertyGrid { Dock = DockStyle.Fill, SelectedObject = Main.Settings.EncounterDb });
+        settings.Controls.Add(new Controls.SettingsView(Main.Settings.EncounterDb));
         TC_SearchOptions.Controls.Add(settings);
 
         // Initialize criteria PropertyGrid with default value

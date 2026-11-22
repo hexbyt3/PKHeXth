@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using PKHeX.Core;
@@ -21,6 +22,33 @@ public partial class StatEditor : UserControl
         L_Stats = [Label_HP, Label_ATK, Label_DEF, Label_SPE, Label_SPA, Label_SPD];
         MT_Base = [TB_BaseHP, TB_BaseATK, TB_BaseDEF, TB_BaseSPE, TB_BaseSPA, TB_BaseSPD];
 
+        // The randomize buttons size to their text, which a zoomed-out window cannot shrink as far as the panel:
+        // keep them at the panel's top and let the panel grow to hold them, so they are never clipped.
+        FLP_PKMEditors.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+        FLP_PKMEditors.Top = 0;
+        EventHandler fitButtons = (_, _) => PAN_BTN.MinimumSize = new Size(FLP_PKMEditors.Right, FLP_PKMEditors.Bottom);
+        FLP_PKMEditors.SizeChanged += fitButtons;
+        FLP_PKMEditors.LocationChanged += fitButtons;
+        foreach (var b in MT_Base) // base stat bar at the end of each stat row
+        {
+            // Disabled boxes get system-grey text; read-only keeps the value readable.
+            b.Enabled = true;
+            b.ReadOnly = true;
+            b.TabStop = false;
+            var bar = new StatBar { Margin = new Padding(8, 8, 0, 0), Size = new Size(44, 10) };
+            b.Parent!.Controls.Add(bar);
+            Bars.Add(bar);
+            // Keep label, boxes and bar on one line; the bar is sized to the remaining width.
+            ((FlowLayoutPanel)b.Parent).WrapContents = false;
+            ((FlowLayoutPanel)b.Parent.Parent!).WrapContents = false;
+        }
+
+        ApplyGrid();
+        FLP_Stats.Layout += (_, _) => FitBars();
+
+        TB_BST.Enabled = true;
+        TB_BST.ReadOnly = true;
+        TB_BST.TabStop = false;
         TB_BST.ResetForeColor();
         TB_IVTotal.ForeColor = TB_EVTotal.ForeColor = MT_EVs[0].ForeColor;
 
@@ -307,13 +335,11 @@ public partial class StatEditor : UserControl
         var tb = MT_IVs[index];
         if (value)
         {
-            tb.BackColor = StatHyperTrained;
-            if (StatHyperTrained.GetBrightness() > 0.5f)
-                tb.ForeColor = Color.Black;
+            SetFieldColor(tb, StatHyperTrained);
         }
         else
         {
-            tb.ResetBackColor();
+            ResetFieldColor(tb);
         }
     }
 
@@ -363,7 +389,7 @@ public partial class StatEditor : UserControl
         if (Entity is not IHyperTrain h)
         {
             foreach (var iv in MT_IVs)
-                iv.ResetBackColor();
+                ResetFieldColor(iv);
             return;
         }
 
@@ -382,20 +408,34 @@ public partial class StatEditor : UserControl
     private void UpdateEVTotals()
     {
         var evtotal = Entity.EVTotal;
-        var color = GetEVTotalColor(evtotal, TB_IVTotal.BackColor);
-        TB_EVTotal.BackColor = color;
-        TB_EVTotal.ForeColor = color.GetBrightness() > 0.5f ? Color.Black : TB_EVTotal.ForeColor;
+        if (GetEVTotalColor(evtotal) is { } color)
+            SetFieldColor(TB_EVTotal, color);
+        else
+            ResetFieldColor(TB_EVTotal);
         TB_EVTotal.Text = evtotal.ToString();
         EVTip.SetToolTip(TB_EVTotal, $"Remaining: {510 - evtotal}");
     }
 
-    private Color GetEVTotalColor(int evtotal, Color defaultColor) => EffortValues.GetGrade(evtotal) switch
+    private Color? GetEVTotalColor(int evtotal) => EffortValues.GetGrade(evtotal) switch
     {
         EffortValueGrade.Illegal => EVsInvalid, // Background turns Red
         EffortValueGrade.MaxLegal => EVsMaxed, // Maximum EVs
         EffortValueGrade.MaxEffective => EVsFishy, // Fishy EVs
-        _ => defaultColor,
+        _ => null,
     };
+
+    // Status colors are toned into the dark field in dark mode (see Theme.Tint); text follows the fill.
+    private static void SetFieldColor(Control tb, Color color)
+    {
+        tb.BackColor = Theming.Theme.Tint(color);
+        tb.ForeColor = Theming.Theme.TextOn(tb.BackColor);
+    }
+
+    private static void ResetFieldColor(Control tb)
+    {
+        tb.BackColor = Theming.Theme.Current.Surface1;
+        tb.ForeColor = Theming.Theme.Current.TextPrimary;
+    }
 
     public void UpdateStats()
     {
@@ -429,12 +469,72 @@ public partial class StatEditor : UserControl
             var value = pi.GetBaseStatValue(index);
             var s = MT_Base[index];
             s.Text = value.ToString("000");
-            s.BackColor = ColorUtil.ColorBaseStat(value);
+            ResetFieldColor(s); // the bar beside the row carries the stat color
+            Bars[index].SetValue(value, ColorUtil.ColorBaseStat(value));
             bst += value;
         }
 
         TB_BST.Text = bst.ToString("000");
-        TB_BST.BackColor = ColorUtil.ColorBaseStatTotal(bst);
+        ResetFieldColor(TB_BST);
+    }
+
+    private readonly List<StatBar> Bars = [];
+
+    /// <summary> The row container, so the host editor can spread the rows over the page height. </summary>
+    internal FlowLayoutPanel Rows => FLP_Stats;
+
+    // Same grid as the other editor tabs: labels left-aligned on an indent, roomier value columns with their headers
+    // centered above them. Logical units; the window's UI scaling applies afterwards.
+    private void ApplyGrid()
+    {
+        const int indent = 8, label = 64, gap = 8;
+        foreach (var l in new[] { Label_HP, Label_ATK, Label_DEF, Label_SPA, Label_SPC, Label_SPD, Label_SPE, Label_Total })
+        {
+            l.Width = label;
+            l.TextAlign = ContentAlignment.MiddleLeft;
+            l.Padding = new Padding(indent, 0, 0, 0);
+        }
+        FLP_SpALeft.Width = label;
+        foreach (var l in new[] { Label_CharacteristicPrefix, Label_HiddenPowerPrefix })
+        {
+            l.TextAlign = ContentAlignment.MiddleLeft;
+            l.Padding = new Padding(indent, 0, 0, 0);
+        }
+        FLP_AlphaNoble.Margin = FLP_AlphaNoble.Margin with { Left = label };
+
+        (MaskedTextBox[] Column, Control Header, Control? Total, int Width)[] columns =
+        [
+            (MT_Base, Label_Base, TB_BST, 40),
+            (MT_IVs, Label_IVs, TB_IVTotal, 32),
+            (MT_EVs, Label_EVs, TB_EVTotal, 40),
+            (MT_AVs, Label_AVs, TB_AVTotal, 40),
+            (MT_GVs, Label_GVs, null, 32),
+            (MT_Stats, Label_Stats, null, 48),
+        ];
+        foreach (var (column, header, total, width) in columns)
+        {
+            foreach (var box in column)
+                box.Width = width;
+            if (total is not null)
+                total.Width = width;
+            header.Width = width + gap; // the header spans box + gap, shifted half a gap left (below), so it centers on the box
+        }
+        FLP_HackedStats.Width = CHK_HackedStats.Width = label - (gap / 2);
+    }
+
+    // The base-stat bars take whatever width is left in their row, up to the page's right padding.
+    private void FitBars()
+    {
+        int right = FLP_Stats.ClientSize.Width - LogicalToDeviceUnits(16);
+        foreach (var bar in Bars)
+        {
+            int x = bar.Left;
+            for (var c = bar.Parent; c is not null && c != FLP_Stats; c = c.Parent)
+                x += c.Left;
+            int w = Math.Max(LogicalToDeviceUnits(24), right - x);
+            if (bar.Width != w)
+                bar.Width = w;
+        }
     }
 
     public void UpdateRandomIVs(object sender, EventArgs e)
@@ -621,19 +721,15 @@ public partial class StatEditor : UserControl
         var tb = MT_GVs[i];
         if (current > max)
         {
-            tb.BackColor = EVsInvalid;
-            if (EVsInvalid.GetBrightness() > 0.5f)
-                tb.ForeColor = Color.Black;
+            SetFieldColor(tb, EVsInvalid);
         }
         else if (current == max)
         {
-            tb.BackColor = StatHyperTrained;
-            if (StatHyperTrained.GetBrightness() > 0.5f)
-                tb.ForeColor = Color.Black;
+            SetFieldColor(tb, StatHyperTrained);
         }
         else
         {
-            tb.ResetBackColor();
+            ResetFieldColor(tb);
         }
     }
 

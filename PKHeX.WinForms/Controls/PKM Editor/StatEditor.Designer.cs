@@ -1362,7 +1362,7 @@ namespace PKHeX.WinForms.Controls
             PAN_BTN.Location = new System.Drawing.Point(0, 339);
             PAN_BTN.Margin = new System.Windows.Forms.Padding(0, 4, 0, 8);
             PAN_BTN.Name = "PAN_BTN";
-            PAN_BTN.Size = new System.Drawing.Size(288, 26);
+            PAN_BTN.Size = new System.Drawing.Size(288, 30);
             PAN_BTN.TabIndex = 20;
             // 
             // FLP_PKMEditors

@@ -76,68 +76,52 @@ public sealed class AccentStatusChip : Control, IThemedControl
 
         var g = e.Graphics;
         g.SmoothingMode = SmoothingMode.AntiAlias;
-
         var palette = Theme.Current;
-        var (fill, text) = GetColors(palette);
+        var (fill, border, text) = GetColors(palette);
 
-        using (var halo = new GraphicsPath())
-        {
-            var outer = Rectangle.Inflate(r, -1, -1);
-            AddPill(halo, outer, outer.Height / 2);
-            using var brush = new SolidBrush(Color.FromArgb(50, fill));
-            g.FillPath(brush, halo);
-        }
+        var pill = new Rectangle(0, 0, r.Width - 1, r.Height - 1);
+        if (_hover)
+            fill = palette.Mix(fill, text, 0.10f);
+        Shapes.Fill(g, pill, pill.Height / 2, fill, Focused ? palette.FocusRing : border);
 
-        var inner = Rectangle.Inflate(r, -3, -3);
-        using (var pill = new GraphicsPath())
-        {
-            AddPill(pill, inner, inner.Height / 2);
-            using var brush = new SolidBrush(fill);
-            g.FillPath(brush, pill);
-
-            if (_status == ChipStatus.Unknown)
-            {
-                using var dashed = new Pen(palette.Border, 1f) { DashStyle = DashStyle.Dash };
-                g.DrawPath(dashed, pill);
-            }
-        }
-
-        bool compact = inner.Width < 48;
-        var glyphSide = inner.Height - 6;
+        bool compact = pill.Width < 48;
+        int glyphSide = pill.Height - LogicalToDeviceUnits(12);
         var glyph = compact
-            ? new Rectangle(inner.Left + ((inner.Width - glyphSide) / 2), inner.Top + 3, glyphSide, glyphSide)
-            : new Rectangle(inner.Left + 4, inner.Top + 3, glyphSide, glyphSide);
+            ? new Rectangle((pill.Width - glyphSide) / 2, (pill.Height - glyphSide) / 2, glyphSide, glyphSide)
+            : new Rectangle(LogicalToDeviceUnits(10), (pill.Height - glyphSide) / 2, glyphSide, glyphSide);
         DrawGlyph(g, glyph, text);
 
         if (!compact)
         {
-            var textBounds = new Rectangle(glyph.Right + 4, inner.Top, inner.Right - glyph.Right - 8, inner.Height);
+            var textBounds = Rectangle.FromLTRB(glyph.Right + LogicalToDeviceUnits(6), 0, pill.Right - LogicalToDeviceUnits(8), pill.Bottom);
             TextRenderer.DrawText(g, GetLabel(), Font, textBounds, text,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis);
         }
-
-        if (Focused)
-        {
-            using var ring = new GraphicsPath();
-            AddPill(ring, Rectangle.Inflate(r, -1, -1), (r.Height - 2) / 2);
-            using var pen = new Pen(palette.FocusRing, 1f) { DashStyle = DashStyle.Dot };
-            g.DrawPath(pen, ring);
-        }
     }
 
-    private (Color Fill, Color Text) GetColors(ThemePalette p) => _status switch
+    private bool _hover;
+    protected override void OnMouseEnter(EventArgs e) { base.OnMouseEnter(e); _hover = true; Invalidate(); }
+    protected override void OnMouseLeave(EventArgs e) { base.OnMouseLeave(e); _hover = false; Invalidate(); }
+
+    // Tinted pill: soft status-colored fill, stronger border, status-colored glyph and text.
+    private (Color Fill, Color Border, Color Text) GetColors(ThemePalette p)
     {
-        ChipStatus.Legal => (p.Legal, Color.White),
-        ChipStatus.Warning => (p.Warning, Color.Black),
-        ChipStatus.Invalid => (p.Invalid, Color.White),
-        _ => (p.Surface2, p.TextMuted),
-    };
+        var status = _status switch
+        {
+            ChipStatus.Legal => p.Legal,
+            ChipStatus.Warning => p.Warning,
+            ChipStatus.Invalid => p.Invalid,
+            _ => p.TextMuted,
+        };
+        var text = p.IsDark ? p.Mix(status, Color.White, 0.25f) : p.Mix(status, Color.Black, 0.15f);
+        return (p.Mix(p.Surface0, status, p.IsDark ? 0.16f : 0.10f), p.Mix(p.Surface0, status, 0.45f), text);
+    }
 
     private string GetLabel() => _status switch
     {
-        ChipStatus.Legal => LegalText,
-        ChipStatus.Warning => WarningText,
-        ChipStatus.Invalid => InvalidText,
+        ChipStatus.Legal => WinFormsTranslator.Tr("Main.Chip_Legal", LegalText),
+        ChipStatus.Warning => WinFormsTranslator.Tr("Main.Chip_Fishy", WarningText),
+        ChipStatus.Invalid => WinFormsTranslator.Tr("Main.Chip_Invalid", InvalidText),
         _ => UnknownText,
     };
 

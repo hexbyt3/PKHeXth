@@ -199,11 +199,7 @@ public partial class BoxEditor : UserControl, ISlotViewer<PictureBox>
         Editor.Reload();
         int box = CurrentBox;
 
-        // Wallpapers clash with the dark palette's Surface0.
-        if (!DesignMode && PKHeX.WinForms.Theming.Theme.Current.IsDark)
-            BoxPokeGrid.SetBackground(null!);
-        else
-            BoxPokeGrid.SetBackground(SAV.WallpaperImage(box));
+        BoxPokeGrid.SetBackground(SAV.WallpaperImage(box));
 
         M?.Hover.Stop();
 

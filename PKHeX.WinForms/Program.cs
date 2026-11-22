@@ -94,6 +94,7 @@ internal static class Program
         {
             Task.Run(() => splash?.BeginInvoke(splash.ForceClose));
             main.Activate();
+            Theme.HookOpenForms(); // before any popup: a modal box would hold off the idle pass that themes the window
 
             // Follow-up: display popups if needed.
             if (init.HaX)

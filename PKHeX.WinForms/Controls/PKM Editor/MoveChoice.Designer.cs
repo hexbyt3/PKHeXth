@@ -57,7 +57,7 @@ namespace PKHeX.WinForms.Controls
             TB_PP.Mask = "000";
             TB_PP.Name = "TB_PP";
             TB_PP.PromptChar = ' ';
-            TB_PP.Size = new System.Drawing.Size(24, 25);
+            TB_PP.Size = new System.Drawing.Size(28, 25);
             TB_PP.TabIndex = 1;
             // 
             // CB_PPUps
@@ -68,7 +68,7 @@ namespace PKHeX.WinForms.Controls
             CB_PPUps.Location = new System.Drawing.Point(186, 0);
             CB_PPUps.Margin = new System.Windows.Forms.Padding(0, 0, 4, 0);
             CB_PPUps.Name = "CB_PPUps";
-            CB_PPUps.Size = new System.Drawing.Size(32, 25);
+            CB_PPUps.Size = new System.Drawing.Size(44, 25);
             CB_PPUps.TabIndex = 2;
             // 
             // CB_Move

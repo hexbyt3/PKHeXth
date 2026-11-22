@@ -41,6 +41,13 @@ public static class SlotUtil
     /// <summary>
     /// Refreshes a <see cref="PictureBox"/> with the appropriate display content.
     /// </summary>
+    /// <summary> Gives a slot tile the plain Pokémon of the sprite it is about to show, so it can zoom the Pokémon on its own. </summary>
+    public static void SetSubject(PictureBox pb, PKM? pk)
+    {
+        if (pb is Controls.SelectablePictureBox tile)
+            tile.Subject = pk?.SubjectSprite();
+    }
+
     public static void UpdateSlot(PictureBox pb, ISlotInfo c, PKM p, SaveFile s, bool flagIllegal, SlotTouchType t = SlotTouchType.None)
     {
         pb.BackgroundImage = GetTouchTypeBackground(t);
@@ -66,6 +73,7 @@ public static class SlotUtil
         };
 
         pb.BackColor = Color.Transparent;
+        SetSubject(pb, p);
         pb.Image = img;
 
         var x = Main.Settings;
