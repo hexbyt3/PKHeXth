@@ -87,7 +87,11 @@ public sealed class WA9(Memory<byte> raw) : DataMysteryGift(raw), ILangNick, INa
     // Pokémon Properties
     public override bool IsEntity { get => CardType == GiftType.Pokemon; set { if (value) CardType = GiftType.Pokemon; } }
 
-    public override bool IsShiny => Shiny.IsShiny();
+    // Fork: a fixed PID is shiny when it is shiny for the ID the card applies (the HOME Shiny Volcanion, card 9034).
+    // Shiny stays FixedValue so GetPID still copies the card's PID as-is.
+    public override bool IsShiny => PIDType == 4 ? IsFixedPIDShiny : Shiny.IsShiny();
+
+    private bool IsFixedPIDShiny => ID32 != 0 && ShinyUtil.GetIsShiny6(IsOldIDFormat ? ID32Old : ID32, PID);
 
     public override Shiny Shiny => PIDType switch
     {
